@@ -13,7 +13,7 @@ time = linspace(0, 5, 50);
 robot = RobotisWrapper();
 
 % Define initial position and target position by sampling two points from
-% the workspace of the robot. 
+% the workspace of the robot.
 % If you want to manually set them, make sure they are in the workspace,
 % and use column vector notation.
 initialPosition = robot.sampleRandomPosition();
@@ -26,7 +26,7 @@ cartesianTrajectory = zeros(3, length(time));
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %%
 
 % Fill the 'trajectory' array with 3D position as column vectors
-% The array 'trajectory' should start at 'initialPosition' 
+% The array 'trajectory' should start at 'initialPosition'
 % and end at 'targetPosition'.
 
 

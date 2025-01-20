@@ -6,7 +6,7 @@ addpath(genpath(fullfile(filepath, '..', 'libraries', 'book-robot-simulation')))
 
 robot = RobotisWrapper();
 optimalControl = MPC4DOF(robot);
-optimalControl.nlSolver.Optimization.CustomCostFcn = % ... 
+optimalControl.nlSolver.Optimization.CustomCostFcn = % ...
 
 target_position = [0.25; 0; 0];
 toleranceDistance = 10e-3;
@@ -38,6 +38,3 @@ close(h)
 optimalControl.showTaskVolume(optimalTrajectories)
 
 %% %%%%%%%%%%%%% User defined cost functions %%%%%%%%%%%%% %%
-
-
-

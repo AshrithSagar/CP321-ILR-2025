@@ -28,7 +28,7 @@ disp("Press space to continue..."); pause(); close all;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Replace ... with your code
 
-disturbance_idx % = ... 
+disturbance_idx % = ...
 
 % Modify q_mid configuration to simulate a perturbation pushing the robot
 % arm in another configuration
@@ -61,14 +61,14 @@ optimal_solution_final.MVopt % = ...
 %% ------ Write your code above ------
 
 % Plot complete trajectory
-f = figure('Name', 'Full trajectory with disturbance'); 
+f = figure('Name', 'Full trajectory with disturbance');
 robot.animateTrajectory(optimal_solution_final.Xopt(:, 1:disturbance_idx), ...
     optimal_solution_final.Yopt(:, 1:disturbance_idx), target_position, 'Full trajectory with disturbance', f);
 pause(0.3);
 plot3([optimal_solution_full.Yopt(1, disturbance_idx) optimal_solution_after_disturbance.Yopt(1,1)], ...
-      [optimal_solution_full.Yopt(2, disturbance_idx) optimal_solution_after_disturbance.Yopt(2,1)], ...
-      [optimal_solution_full.Yopt(3, disturbance_idx) optimal_solution_after_disturbance.Yopt(3,1)], ...
-      'color', 'r', 'LineWidth', 4);
+    [optimal_solution_full.Yopt(2, disturbance_idx) optimal_solution_after_disturbance.Yopt(2,1)], ...
+    [optimal_solution_full.Yopt(3, disturbance_idx) optimal_solution_after_disturbance.Yopt(3,1)], ...
+    'color', 'r', 'LineWidth', 4);
 pause(0.3);
 robot.animateTrajectory(optimal_solution_final.Xopt(:, disturbance_idx:end), ...
     optimal_solution_final.Yopt(:, disturbance_idx:end), target_position, 'Full trajectory with disturbance', f);
@@ -78,9 +78,9 @@ robot.animateTrajectory(optimal_solution_final.Xopt(:, disturbance_idx:end), ...
 %% ------ Write your code below for Question 1 ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %%
 
-% Minimum distance in joint space 
+% Minimum distance in joint space
 % This function integrate dq = u(1:4) to minimize joint trajectory length
 function cost = minimumJointDistance(X, U, e, data, robot, target)
 
-    cost = 0;
+cost = 0;
 end

@@ -24,20 +24,20 @@ for iTraj=1:nTraj
     
     %% ------ Write your code below ------
     %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %%
-
+    
     % Compute one 'trajectory' from 'q0' to 'targetPosition'
     
-
-
-
+    
+    
+    
     %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %%
     %% ------ Write your code above ------
-
+    
     % Sub sample trajectory to a fixed-size array, and store it in
     % 'trajectories' dataset
     trajectorySubSampled = interp1(1:size(trajectory, 2), trajectory', linspace(1, size(trajectory, 2), nPoints))';
-    trajectories(:, :, iTraj) = trajectorySubSampled;   
-
+    trajectories(:, :, iTraj) = trajectorySubSampled;
+    
     % Show trajectory animation
     robot.animateTrajectory(trajectorySubSampled(1:4,:), robot.computeForwardKinematics(trajectorySubSampled(1:4,:)), targetPosition, 'inverse kinematic solution')
     disp('Press space to continue...'); pause();
@@ -49,7 +49,7 @@ end
 close all;
 figure(2)
 show(robot.robot, [robot.computeInverseKinematics(targetPosition, zeros(6,1), false); 0; 0], ...
-            'PreservePlot', false, 'Frames', 'off', 'Visuals', 'on');
+    'PreservePlot', false, 'Frames', 'off', 'Visuals', 'on');
 hold on;
 plot3(targetPosition(1), targetPosition(2), targetPosition(3), 'ro', 'LineWidth', 1.5, 'MarkerSize', 15);
 
