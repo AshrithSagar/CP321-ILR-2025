@@ -29,6 +29,13 @@ cartesianTrajectory = zeros(3, length(time));
 % The array 'trajectory' should start at 'initialPosition'
 % and end at 'targetPosition'.
 
+Tf = time(end);
+initialVelocity = [0 0 0];
+finalVelocity = [0 0 0];
+coeffs = zeros(3, 4);
+
+coeffs(:, 4) = initialPosition;
+coeffs(:, 3) = initialVelocity;
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %%
 %% ------ Write your code above ------
