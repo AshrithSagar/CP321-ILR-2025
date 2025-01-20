@@ -27,18 +27,21 @@ optimal_control.showResults(optimalSolution, target_position, 'Minimal Time');
 % The robot arm is modeled with the following state space representation:
 % - X: state vector = 4 joint angles of the robot arm
 % - U(1:4): input vector = 4 joint speed
-% - U(5): final time of the trajectory (constant for all timesteps), at 
+% - U(5): final time of the trajectory (constant for all timesteps), at
 % which the robot arm should reach a specified target
 
 %% OVERWRITE COST VARIABLE IN EACH FUNCTION %%
 
-% Task 1: Minimum time 
+% Task 1: Minimum time
 % This function minimizes the time scaling parameter Tf to minimize
 % trajectory time
 function cost = minimumTime(X, U, e, data, robot, target)
-
-    cost = 0;
+N = data.PredictionHorizon;
+cost = 0;
+for i = 1:N
+    q = X(i, :);
+    jacobian = robot.fastJacobian(q);
+    cost = cost + norm(jacobian * U(i, 1:4)', 2) * e;
 end
-
-
-
+cost = cost + norm(X(N, :) - target, 2) * e;
+end
