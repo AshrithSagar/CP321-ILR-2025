@@ -1,7 +1,8 @@
 \section*{Exercise 1.4}
-Kinematically feasible trajectories
 
-\subsubsection*{Inverse Kinematics}
+\textbf{Kinematically feasible trajectories}
+
+\subsubsection*{(a) Inverse Kinematics}
 
 \begin{figure*}[htbp]
     \centering
@@ -9,16 +10,25 @@ Kinematically feasible trajectories
     \caption{ex1\_4: Sampled trajectories}
 \end{figure*}
 
+\subsubsection*{Question 1}
+
 What is the effect of using different Jacobian inversion methods?
+
+\subsubsection*{Solution}
 
 The different Jacobian inversion methods have different convergence rates and stability properties.
 The Pseudo Inverse method is more prone to singularities.
 
+\subsubsection*{Question 2}
+
 Can you think of other features that could be added to this algorithm?
 
-Different inverse methods.
+\subsubsection*{Solution}
 
-\subsubsection*{Optimal control}
+We can add a damping factor to the Jacobian to make the algorithm more stable.
+
+
+\subsubsection*{(b) Optimal control}
 
 \begin{figure*}[htbp]
     \centering
