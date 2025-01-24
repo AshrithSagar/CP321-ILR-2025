@@ -89,4 +89,10 @@ robot.animateTrajectory(optimal_solution_final.Xopt(:, disturbance_idx:end), ...
 function cost = minimumJointDistance(X, U, e, data, robot, target)
 
 cost = 0;
+for i = 1:data.PredictionHorizon
+    dq = U(i, 1:4)'; % Joint velocities at timestep i
+    cost = cost + norm(dq)^2; % Minimize sum of squared joint velocities
+end
+slack_penalty = norm(e)^2; % Penalize constraint violations
+cost = cost + 100 * slack_penalty;
 end
