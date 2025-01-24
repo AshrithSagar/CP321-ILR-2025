@@ -28,19 +28,21 @@ disp("Press space to continue..."); pause(); close all;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Replace ... with your code
 
-disturbance_idx % = ...
+disturbance_idx = round(length(optimal_solution_full.Topt) / 2);
+% Mid-point of the trajectory
 
 % Modify q_mid configuration to simulate a perturbation pushing the robot
 % arm in another configuration
 q_mid = optimal_solution_full.Xopt(:, disturbance_idx);
-q_mid = q_mid % + ...
+q_mid = q_mid + deg2rad([10; 0; 0; 0]);
+% Add 10 degrees (converted to radians) to the first joint
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%  Question 3: Generate complete trajectory  %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Reallocate rest of time to still meet deadline
-time_left % = ...
+time_left = max_time - optimal_solution_full.Topt(disturbance_idx);
 
 % Compute new trajectory starting from midpath joint state by providing
 % joint state midpath as initial configuration for the solver
@@ -52,10 +54,14 @@ optimal_solution_after_disturbance = optimal_control.solveOptimalTrajectory(targ
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %%
 
 optimal_solution_final = [];
-optimal_solution_final.Topt % = ...
-optimal_solution_final.Xopt % = ...
-optimal_solution_final.Yopt % = ...
-optimal_solution_final.MVopt % = ...
+optimal_solution_final.Topt = [optimal_solution_full.Topt(1:disturbance_idx), ...
+    optimal_solution_after_disturbance.Topt + optimal_solution_full.Topt(disturbance_idx)];
+optimal_solution_final.Xopt = [optimal_solution_full.Xopt(:, 1:disturbance_idx), ...
+    optimal_solution_after_disturbance.Xopt];
+optimal_solution_final.Yopt = [optimal_solution_full.Yopt(:, 1:disturbance_idx), ...
+    optimal_solution_after_disturbance.Yopt];
+optimal_solution_final.MVopt = [optimal_solution_full.MVopt(:, 1:disturbance_idx), ...
+    optimal_solution_after_disturbance.MVopt];
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %%
 %% ------ Write your code above ------
