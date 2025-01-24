@@ -17,11 +17,11 @@ nb_gridpoints = 50;
 %% ------ Write your code below ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %
 
-x_dot % = ... % calculate velocity in x direction at each gridpoint
-y_dot % = ... % calculate velocity in y direction at each gridpoint
+x_dot = -x; % calculate velocity in x direction at each gridpoint
+y_dot = -y; % calculate velocity in y direction at each gridpoint
 
 % Calculate absolute velocity at each gridpoint
-abs_vel % = ...
+abs_vel = sqrt(x_dot.^2 + y_dot.^2);
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ &
 %% ------ Write your code above ------
@@ -35,14 +35,51 @@ max_iter = 1000;
 %% ------ Write your code below ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %
 
-initial_position % = ...
+initial_position = [1; 1];
 path_integral = initial_position; % path integral is intially a 2x1 array that will store the path and grow to a 2xN array.
 % TODO: implement breaking conditions for while loop
-while true
-    % TODO: integrate DS to get next position of the path integral
-    path_integral(:,end+1) = path_integral(:,end) % + ...
-    iter % = ...
+while iter < max_iter
+    % Velocity at the current position (interpolation on the grid)
+    x_pos = path_integral(1, end);
+    y_pos = path_integral(2, end);
+    
+    % Ensure the position is within bounds (clamping)
+    if x_pos < x_limits(1) || x_pos > x_limits(2) || y_pos < y_limits(1) || y_pos > y_limits(2)
+        break;  % Stop if out of bounds
+    end
+    
+    % Find the closest grid point to the current position
+    [~, x_idx] = min(abs(x(:, 1) - x_pos));
+    [~, y_idx] = min(abs(y(1, :) - y_pos));
+    
+    % Get the velocity at that grid point
+    v_x = x_dot(x_idx, y_idx);
+    v_y = y_dot(x_idx, y_idx);
+    
+    % Integrate to get the next position using Euler’s method
+    new_position = path_integral(:, end) + dt * [v_x; v_y];
+    
+    % Append the new position to the path
+    path_integral(:, end + 1) = new_position;
+    
+    iter = iter + 1;
 end
+
+x0 = [1; 1];  % initial condition for the path
+titleName = 'Path Integral of Modulated DS';
+x_target = [];  % No additional target in this case
+
+% Use the plot_ds function
+plot_ds(x, y, x_dot, y_dot, path_integral, x0, titleName, x_target);
+
+% Plot the final path (for debugging if necessary)
+figure;
+plot(path_integral(1, :), path_integral(2, :), 'r-', 'LineWidth', 2);
+xlabel('x');
+ylabel('y');
+title('Path Integral of Modulated Dynamical System');
+grid on;
+axis equal;
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ &
 %% ------ Write your code above ------
