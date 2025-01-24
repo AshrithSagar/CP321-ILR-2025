@@ -6,7 +6,7 @@ addpath(genpath(fullfile(filepath, '..', 'libraries', 'book-robot-simulation')))
 
 robot = RobotisWrapper();
 optimalControl = MPC4DOF(robot);
-optimalControl.nlSolver.Optimization.CustomCostFcn = % ...
+optimalControl.nlSolver.Optimization.CustomCostFcn = @myCost;
 
 target_position = [0.25; 0; 0];
 toleranceDistance = 10e-3;
@@ -38,3 +38,14 @@ close(h)
 optimalControl.showTaskVolume(optimalTrajectories)
 
 %% %%%%%%%%%%%%% User defined cost functions %%%%%%%%%%%%% %%
+% minimumJointDistance
+function cost = myCost(X, U, e, data, robot, target)
+
+cost = 0;
+for i = 1:data.PredictionHorizon
+    dq = U(i, 1:4)'; % Joint velocities at timestep i
+    cost = cost + norm(dq)^2; % Minimize sum of squared joint velocities
+end
+slack_penalty = norm(e)^2; % Penalize constraint violations
+cost = cost + 100 * slack_penalty;
+end
