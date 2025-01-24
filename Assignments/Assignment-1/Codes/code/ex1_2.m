@@ -53,6 +53,10 @@ optimal_control.showResults(optimalSolution, target_position, 'Minimal Joint Dis
 function cost = minimumTime(X, U, e, data, robot, target)
 
 cost = 0;
+for i = 1:data.PredictionHorizon
+    Tf = U(5); % Final time of the trajectory
+    cost = Tf; % Minimize the final time of the trajectory directly
+end
 end
 
 
@@ -65,7 +69,11 @@ function cost = minimumTaskDistance(X, U, e, data, robot, target)
 
 cost = 0;
 for i = 1:data.PredictionHorizon
-    cost = cost; % + ...
+    q = X(i, :); % Joint positions at timestep i
+    dq = U(i, 1:4)'; % Joint velocities at timestep i
+    J = robot.fastJacobian(q'); % Jacobian at timestep i
+    dx = J * dq; % Cartesian velocity
+    cost = cost + norm(dx)^2; % Sum of squared Cartesian velocities
 end
 end
 
@@ -77,6 +85,9 @@ function cost = minimumJointDistance(X, U, e, data, robot, target)
 
 cost = 0;
 for i = 1:data.PredictionHorizon
-    cost = cost; % + ...
+    dq = U(i, 1:4)'; % Joint velocities at timestep i
+    cost = cost + norm(dq)^2; % Sum of squared joint velocities
 end
+slack_penalty = norm(e)^2; % Penalize constraint violations
+cost = cost + 100 * slack_penalty;
 end
