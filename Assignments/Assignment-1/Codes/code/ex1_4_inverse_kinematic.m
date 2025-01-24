@@ -27,8 +27,42 @@ for iTraj=1:nTraj
     
     % Compute one 'trajectory' from 'q0' to 'targetPosition'
     
+    % Initialize current state
+    q = q0;
+    t = 0;
+    dt = 0.01; % Time step
     
-    
+    while true
+        % Compute Cartesian position and distance to target
+        currentPos = robot.fastForwardKinematic(q);
+        distToTarget = norm(currentPos - targetPosition);
+        
+        % Stop if target is within tolerance
+        if distToTarget < toleranceDistance
+            break;
+        end
+        
+        % Compute Jacobian and velocity
+        J = robot.fastJacobian(q);
+        desiredVel = targetPosition - currentPos; % Proportional
+        
+        % Solve for joint velocities using damped pseudo-inverse
+        lambda = 0.01; % Damping factor
+        J_damped = J' / (J*J' + lambda^2 * eye(size(J, 1)));
+        q_dot = J_damped * desiredVel;
+        
+        % Scale joint velocities to respect maxJointSpeed
+        if max(abs(q_dot)) > maxJointSpeed
+            q_dot = q_dot * (maxJointSpeed / max(abs(q_dot)));
+        end
+        
+        % Update joint positions
+        q = q + q_dot * dt;
+        t = t + dt;
+        
+        % Store current state
+        trajectory = [trajectory, [q; q_dot]]; %#ok<AGROW>
+    end
     
     %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %%
     %% ------ Write your code above ------
