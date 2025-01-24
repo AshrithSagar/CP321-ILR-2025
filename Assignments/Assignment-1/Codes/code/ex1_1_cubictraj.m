@@ -37,6 +37,18 @@ coeffs = zeros(3, 4);
 coeffs(:, 4) = initialPosition;
 coeffs(:, 3) = initialVelocity;
 
+for i = 1:3  % Loop through coordinates
+    A = [Tf^3, Tf^2, Tf, 1;
+        3*Tf^2, 2*Tf, 1, 0;
+        0, 0, 1, 0;
+        0, 0, 0, 1];
+    B = [targetPosition(i); finalVelocity(i); initialVelocity(i); initialPosition(i)];
+    coeffs = A \ B;
+    for j = 1:length(time)
+        cartesianTrajectory(i, :) = polyval(coeffs, time);
+    end
+end
+
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ %%
 %% ------ Write your code above ------
 
