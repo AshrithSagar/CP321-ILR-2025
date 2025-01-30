@@ -20,3 +20,21 @@ Consider the pendulum DS with friction
 \end{enumerate}
 
 \subsection*{Solution}
+
+\subsection*{1. State space representation}
+
+The given system is a second-order nonlinear system which be represented as, by using the state variables \( x_{1} = \theta \) and \( x_{2} = \dot{\theta} \),
+\[
+    \boxed{
+        \begin{bmatrix}
+            \dot{x}_{1} \\
+            \dot{x}_{2}
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+            x_{2} \\
+            -g \sin (x_{1}) - x_{2}
+        \end{bmatrix}
+        ,\quad x_{1}, x_{2} \in \mathbb{R}
+    }
+\]
