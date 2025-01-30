@@ -12,6 +12,7 @@ Answer the following:
     \item For what values of \( \alpha \) and \( \beta \) is the system unstable at the equilibrium point?
 \end{enumerate}
 
+\vspace*{-1em}
 \subsection*{Solution}
 
 The given system can be represented as:
@@ -32,6 +33,7 @@ The given system can be represented as:
     ,\quad \alpha, \beta \in \mathbb{R}
 \end{equation*}
 
+\vspace*{-1em}
 \subsubsection*{1. Equilibrium point}
 
 The equilibrium point can be found by setting the derivatives of the state variables to zero.
@@ -57,6 +59,7 @@ The equilibrium point can be found by setting the derivatives of the state varia
 Therefore, the \underline{equilibrium point exists} at \( \boxed{ (0, 0) } \) for \( \beta \neq 0, \ \alpha \in \mathbb{R} \) \\
 and at \( \boxed{ (x_0, \alpha x_0) } \) for \( \beta = 0, \ x_0, \alpha \in \mathbb{R} \).
 
+\vspace*{-1em}
 \subsubsection*{2. Stability at the equilibrium point}
 
 The Jacobian matrix of the system is
@@ -74,4 +77,9 @@ which doesn't depend on the values of \( x \) and \( y \), thereby is same for a
 
 The eigenvalues of the \( J \) can be found in this case by inspection as \( \lambda = \{ \beta, -1 \} \), since it is a lower triangular matrix.
 For the system to be stable, the real part of the eigenvalues must be negative.
-Therefore, the system is stable at the equilibrium point for \( \boxed{ \beta < 0 } \).
+Therefore, the system is stable at the equilibrium point for \( \boxed{ \beta < 0, \ \alpha \in \mathbb{R} } \).
+
+\vspace*{-1em}
+\subsubsection*{3. Instability at the equilibrium point}
+
+Similary, we can see that with \( \boxed{\beta > 0, \ \alpha \in \mathbb{R}} \), the system is unstable at the equilibrium point.
