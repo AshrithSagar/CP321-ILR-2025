@@ -39,7 +39,7 @@ The given system is a second-order nonlinear system which be represented as, by 
     }
 \]
 
-\subsection*{2. Lyapunov-stable equilibrium point}
+\subsection*{2, 3. Lyapunov-stable equilibrium point}
 
 The equilibrium points can be found by
 \begin{align*}
@@ -58,3 +58,19 @@ The equilibrium points can be found by
     x_{1} = n \pi, \ n \in \mathbb{Z}
 \end{align*}
 giving the equilibrium points as \( (n \pi, 0) \), \( n \in \mathbb{Z} \), where we are only interested in \( (0, 0) \).
+
+The system can be linearized around the equilibrium point \( (0, 0) \) as
+\[
+    \begin{bmatrix}
+        0             & 1  \\
+        -g \cos (x_1) & -1
+    \end{bmatrix} \Bigg|_{x = (0, 0)}
+    =
+    \begin{bmatrix}
+        0  & 1  \\
+        -g & -1
+    \end{bmatrix}
+    \implies
+    \dot x = Ax, \quad
+    A \triangleq \begin{bmatrix} 0 & 1 \\ -g & -1 \end{bmatrix}
+\]
