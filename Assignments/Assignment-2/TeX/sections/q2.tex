@@ -13,3 +13,38 @@ Answer the following:
 \end{enumerate}
 
 \subsection*{Solution}
+
+\begin{enumerate}[noitemsep]
+    \item The equilibrium point of the system is the point where the rate of change of both the variables is zero. Therefore, the equilibrium point is the point where
+          \begin{align*}
+               & \dot{x}=\beta x=0 \implies x=0            \\
+               & \dot{y}=-y+\alpha x=0 \implies y=\alpha x
+          \end{align*}
+          Therefore, the equilibrium point is \( (0,0) \).
+    \item The system is stable at the equilibrium point if the eigenvalues of the Jacobian matrix evaluated at the equilibrium point have negative real parts. The Jacobian matrix of the system is
+          \[
+              J=\begin{bmatrix}
+                  \frac{\partial \dot{x}}{\partial x} & \frac{\partial \dot{x}}{\partial y} \\
+                  \frac{\partial \dot{y}}{\partial x} & \frac{\partial \dot{y}}{\partial y}
+              \end{bmatrix}
+              =\begin{bmatrix}
+                  \beta  & 0  \\
+                  \alpha & -1
+              \end{bmatrix}
+          \]
+          The eigenvalues of the Jacobian matrix are the roots of the characteristic equation
+          \[
+              \text{det}(J-\lambda I)=0
+          \]
+          where \( I \) is the identity matrix. Therefore, the characteristic equation is
+          \[
+              \text{det}\begin{bmatrix}
+                  \beta-\lambda & 0          \\
+                  \alpha        & -1-\lambda
+              \end{bmatrix}
+              =(\beta-\lambda)(-1-\lambda)=0
+          \]
+          Therefore, the eigenvalues are \( \lambda_1=\beta \) and \( \lambda_2=-1 \). The system is stable at the equilibrium point if both the eigenvalues have negative real parts. Therefore, the system is stable at the equilibrium point if \( \beta<0 \) and \( -1<0 \). Therefore, the system is stable at the equilibrium point if \( \beta<0 \).
+    \item The system is unstable at the equilibrium point if the eigenvalues of the Jacobian matrix evaluated at the equilibrium point have positive real parts. The system is unstable at the equilibrium point if \( \beta
+          >0 \).
+\end{enumerate}
