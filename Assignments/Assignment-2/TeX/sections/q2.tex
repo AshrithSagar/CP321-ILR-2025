@@ -59,7 +59,7 @@ and at \( \boxed{ (x_0, \alpha x_0) } \) for \( \beta = 0, \ x_0, \alpha \in \ma
 
 \subsubsection*{2. Stability at the equilibrium point}
 
-The Jacobian matrix of the system is:
+The Jacobian matrix of the system is
 \[
     J = \begin{bmatrix}
         \frac{\partial \dot{x}}{\partial x} & \frac{\partial \dot{x}}{\partial y} \\
@@ -70,13 +70,8 @@ The Jacobian matrix of the system is:
         \alpha & -1
     \end{bmatrix}
 \]
-The eigenvalues of the Jacobian matrix are:
-\[
-    \text{det}(J - \lambda I) = 0
-    \implies
-    \lambda^2 + \lambda - \beta = 0
-    \implies
-    \lambda = \frac{-1 \pm \sqrt{1 + 4\beta}}{2}
-\]
+which doesn't depend on the values of \( x \) and \( y \), thereby is same for all the equilibrium points.
+
+The eigenvalues of the \( J \) can be found in this case by inspection as \( \lambda = \{ \beta, -1 \} \), since it is a lower triangular matrix.
 For the system to be stable, the real part of the eigenvalues must be negative.
 Therefore, the system is stable at the equilibrium point for \( \boxed{ \beta < 0 } \).
