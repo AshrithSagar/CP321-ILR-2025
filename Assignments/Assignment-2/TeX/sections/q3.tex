@@ -29,3 +29,16 @@ The given system is a nonlinear system whose equilibrium point can be found by,
 Therefore, the \underline{equilibrium point} is at \( \boxed{ (0, 0) } \).
 
 \subsection*{2. Region of attraction and stability}
+
+Given the Lyapunov function \( V(x) = x_{1}^{2} + x_{2}^{2} \), the derivative of \( V(x) \) is
+\[
+    \dot{V}(x) = \nabla V(x) \cdot f(x)
+    \quad \text{where} \quad
+    f(x) = \begin{bmatrix} -x_{1} + x_{1} x_{2} \\ -x_{2} \end{bmatrix}
+\]
+\[
+    \implies
+    \dot{V}(x) = \begin{bmatrix} 2x_{1} & 2x_{2} \end{bmatrix}
+    \begin{bmatrix} -x_{1} + x_{1} x_{2} \\ -x_{2} \end{bmatrix}
+    = -2x_{1}^{2} - 2x_{2}^{2} + 2x_{1}^{2} x_{2}
+\]
