@@ -1,1 +1,22 @@
 \section*{Exercise 1.4}
+
+Consider the pendulum DS with friction
+\[
+    \ddot{\theta}=-g \sin (\theta)-\dot{\theta}
+\]
+\begin{enumerate}[noitemsep]
+    \item Write down a state space representation using variable \( x=\left(x_{1}, x_{2}\right) \).
+    \item As \( x=(0,0) \) is a Lyapunov-stable equilibrium point, there exists a Laypunov candidate function \( V(x) \) such that:
+          \begin{align*}
+               & V(0,0)=0                                            \\
+               & V(x)>0, \dot{V}(x) \leq 0 \quad \forall x \neq(0,0)
+          \end{align*}
+    \item Write a Lyapunov function satisfying it and show that \( (0,0) \) is stable.
+    \item Compute and plot the path integral of the pendulum DS without damping \( x(0)= \) \( \binom{0}{0},\binom{0.78}{0},\binom{2.35}{0},\binom{3.14}{1},\binom{3.14}{4} \).
+              [ state space range between -10 to 10]
+    \item Compute and plot the path integral of the pendulum DS with damping \\
+          \( x(0)= \) \( \binom{0}{0},\binom{0.78}{0},\binom{2.35}{0},\binom{3.14}{1},\binom{3.14}{4} \).
+              [ state space range between -10 to 10]
+\end{enumerate}
+
+\subsection*{Solution}
