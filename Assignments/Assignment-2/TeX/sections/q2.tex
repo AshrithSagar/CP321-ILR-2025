@@ -14,14 +14,69 @@ Answer the following:
 
 \subsection*{Solution}
 
-\subsubsection*{1. Equilibrium Point}
+The given system can be represented as:
+\begin{equation*}
+    \begin{bmatrix}
+        \dot{x} \\
+        \dot{y}
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+        \beta  & 0  \\
+        \alpha & -1
+    \end{bmatrix}
+    \begin{bmatrix}
+        x \\
+        y
+    \end{bmatrix}
+    ,\quad \alpha, \beta \in \mathbb{R}
+\end{equation*}
 
-The equilibrium occurs when both \(\dot{x} = 0\) and \(\dot{y} = 0\).
-From the system:
+\subsubsection*{1. Equilibrium point}
+
+The equilibrium point can be found by setting the derivatives of the state variables to zero.
 \[
-    \dot{x} = \beta x = 0 \implies x = 0
+    \implies
+    \dot{x} = \beta x = 0
+    \implies
+    \beta \in \mathbb{R}\setminus \{0\}, \ x = 0
+    \quad \text{or} \quad
+    \beta = 0, \ x = x_0, \text{ for some } x_0 \in \mathbb{R}
 \]
 \[
-    \dot{y} = -y + \alpha x = 0 \implies y = \alpha x \implies y = 0
+    \implies
+    \dot{y} = -y + \alpha x = 0
+    \implies
+    y = \alpha x
+    \implies
+    y = \begin{cases}
+        0,          & \text{if } \beta \neq 0 \\
+        \alpha x_0, & \text{if } \beta = 0
+    \end{cases}
 \]
-Therefore, the equilibrium point exists and is the point \( \boxed{ (0, 0) }\).
+Therefore, the \underline{equilibrium point exists} at \( \boxed{ (0, 0) } \) for \( \beta \neq 0, \ \alpha \in \mathbb{R} \) \\
+and at \( \boxed{ (x_0, \alpha x_0) } \) for \( \beta = 0, \ x_0, \alpha \in \mathbb{R} \).
+
+\subsubsection*{2. Stability at the equilibrium point}
+
+The Jacobian matrix of the system is:
+\[
+    J = \begin{bmatrix}
+        \frac{\partial \dot{x}}{\partial x} & \frac{\partial \dot{x}}{\partial y} \\
+        \frac{\partial \dot{y}}{\partial x} & \frac{\partial \dot{y}}{\partial y}
+    \end{bmatrix}
+    = \begin{bmatrix}
+        \beta  & 0  \\
+        \alpha & -1
+    \end{bmatrix}
+\]
+The eigenvalues of the Jacobian matrix are:
+\[
+    \text{det}(J - \lambda I) = 0
+    \implies
+    \lambda^2 + \lambda - \beta = 0
+    \implies
+    \lambda = \frac{-1 \pm \sqrt{1 + 4\beta}}{2}
+\]
+For the system to be stable, the real part of the eigenvalues must be negative.
+Therefore, the system is stable at the equilibrium point for \( \boxed{ \beta < 0 } \).
