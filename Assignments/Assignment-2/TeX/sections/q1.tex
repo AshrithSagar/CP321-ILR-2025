@@ -12,30 +12,36 @@ Given \( M=\left(\begin{array}{cc}1 & -2 \\ 0 & 1\end{array}\right) \),
 
 Given:
 \begin{align*}
-     &
-    \dot x
-    =
-    A x
-     &
-    \quad
+    \text{Original DS:}
+    \qquad
+    \dot{x}
+      & = A x
+      &
     x(0)
-    =
-    \begin{bmatrix}
-        1 \\
-        1
-    \end{bmatrix}
+      & =
+    \begin{bmatrix} 1 \\ 1 \end{bmatrix}
+      &
+    A
+      & =
+    \begin{bmatrix} a_1 & 0 \\ 0 & a_2 \end{bmatrix},
+    \quad a_1 \neq a_2
     \\
-    \implies
-     &
-    \dot x
-    =
+    \text{Modulated DS:}
+    \qquad
+    \dot{x}
+      & =
     M A x
-     &
-    M
-    =
-    \begin{bmatrix}
-        1 & -2 \\
-        0 & 1
-    \end{bmatrix}
-    \\
+      &
+    M & =
+    \begin{bmatrix} 1 & -2 \\ 0 & 1 \end{bmatrix}
+      &
+    \implies
+    M A
+      & =
+    \begin{bmatrix} a_1 & -2 a_2 \\ 0 & a_2 \end{bmatrix}
 \end{align*}
+
+For the modulated system to converge to \( x^{*}=\begin{bmatrix} 0 \\ 0 \end{bmatrix} \), the eigenvalues of the modulated system marix should have negative real parts.
+The eigenvalues of the modulated system marix can be directly computed by inspection since the bottom left element of the matrix is zero, thereby giving the eigenvalues as \( a_1 \) and \( a_2 \).
+\\
+Hence, for the modulated system to converge to \( x^{*}=\begin{bmatrix} 0 \\ 0 \end{bmatrix} \), we need \( \boxed{a_1 < 0, a_2 < 0, a_1 \neq a_2} \).
