@@ -4,44 +4,58 @@ Consider a 2 dimensional linear DS, \( \dot{x}=A x \), with \( x(0)=\binom{1}{1}
 We wish to introduce a modulation matrix \( M \) to modify the dynamics as follows: \( \dot{x}=M A x \).
 Given \( M=\left(\begin{array}{cc}1 & -2 \\ 0 & 1\end{array}\right) \),
 \begin{enumerate}[noitemsep]
-    \item Find a diagonal matrix \( A=\operatorname{diag}\left(a_{1}, a_{2}\right) \), with \( a_{1} \neq a_{2} \) for which the modulated system converges to \( x^{*}=\binom{0}{0} \)
-    \item Compute and plot the path integral of the modulated DS with \( x(0)=\binom{1}{1} \). [Use the provided code].
+  \item Find a diagonal matrix \( A=\operatorname{diag}\left(a_{1}, a_{2}\right) \), with \( a_{1} \neq a_{2} \) for which the modulated system converges to \( x^{*}=\binom{0}{0} \)
+  \item Compute and plot the path integral of the modulated DS with \( x(0)=\binom{1}{1} \). [Use the provided code].
 \end{enumerate}
 
 \subsection*{Solution}
 
 Given:
 \begin{align*}
-    \text{Original DS:}
-    \qquad
-    \dot{x}
-      & = A x
-      &
-    x(0)
-      & =
-    \begin{bmatrix} 1 \\ 1 \end{bmatrix}
-      &
-    A
-      & =
-    \begin{bmatrix} a_1 & 0 \\ 0 & a_2 \end{bmatrix},
-    \quad a_1 \neq a_2
-    \\
-    \text{Modulated DS:}
-    \qquad
-    \dot{x}
-      & =
-    M A x
-      &
-    M & =
-    \begin{bmatrix} 1 & -2 \\ 0 & 1 \end{bmatrix}
-      &
-    \implies
-    M A
-      & =
-    \begin{bmatrix} a_1 & -2 a_2 \\ 0 & a_2 \end{bmatrix}
+  \text{Original DS:}
+  \qquad
+  \dot{x}
+    & = A x
+    &
+  x(0)
+    & =
+  \begin{bmatrix} 1 \\ 1 \end{bmatrix}
+    &
+  A
+    & =
+  \begin{bmatrix} a_1 & 0 \\ 0 & a_2 \end{bmatrix},
+  \quad a_1 \neq a_2
+  \\
+  \text{Modulated DS:}
+  \qquad
+  \dot{x}
+    & =
+  M A x
+    &
+  M & =
+  \begin{bmatrix} 1 & -2 \\ 0 & 1 \end{bmatrix}
+    &
+  \implies
+  M A
+    & =
+  \begin{bmatrix} a_1 & -2 a_2 \\ 0 & a_2 \end{bmatrix}
 \end{align*}
 
 For the modulated system to converge to \( x^{*}=\begin{bmatrix} 0 \\ 0 \end{bmatrix} \), the eigenvalues of the modulated system marix should have negative real parts.
 The eigenvalues of the modulated system marix can be directly computed by inspection since the bottom left element of the matrix is zero, thereby giving the eigenvalues as \( a_1 \) and \( a_2 \).
 \\
 Hence, for the modulated system to converge to \( x^{*}=\begin{bmatrix} 0 \\ 0 \end{bmatrix} \), we need \( \boxed{a_1 < 0, a_2 < 0, a_1 \neq a_2} \).
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/q1/q1-1.jpg}
+  \end{subfigure}
+  \vfill
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/q1/q1-2.jpg}
+  \end{subfigure}
+  \caption{Path integral of the modulated DS with \( x(0)=\begin{bmatrix} 1 \\ 1 \end{bmatrix} \)}
+\end{figure}

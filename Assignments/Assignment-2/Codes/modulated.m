@@ -131,7 +131,7 @@ scatter(x0(1, :), x0(2, :), 100, 'r*', 'LineWidth', 2);
 
 plot(path(1,:), path(2,:), 'r', 'LineWidth', 3);
 
-if exist('x_target', 'var')
+if exist('x_target', 'var') && ~isempty(x_target)
     scatter(x_target(1, :), x_target(2, :), 100, 'bd', 'LineWidth', 2);
 end
 
