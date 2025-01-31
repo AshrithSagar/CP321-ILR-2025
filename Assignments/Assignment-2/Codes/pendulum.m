@@ -5,8 +5,8 @@ filepath = fileparts(which('pendulum.m'));
 cd(filepath);
 
 %% %%%%%%%%%%% Step 1: Define grid %%%%%%%%%%%%%%%%%%%%%%%%%%%
-x_limits = [-15, 15];
-y_limits = [-5, 5];
+x_limits = [-10, 10];
+y_limits = [-10, 10];
 nb_gridpoints = 50;
 
 % mesh domain
@@ -17,11 +17,12 @@ nb_gridpoints = 50;
 %% ------ Write your code below ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %
 
-x_dot % = ... % calculate velocity in x direction at each gridpoint
-y_dot % = ... % calculate velocity in y direction at each gridpoint
+g = 9.81; % gravity
+x_dot = y; % calculate velocity in x direction at each gridpoint
+y_dot = -g * sin(x) - y; % calculate velocity in y direction at each gridpoint
 
 % Calculate absolute velocity at each gridpoint
-abs_vel % = ...
+abs_vel = sqrt(x_dot.^2 + y_dot.^2);
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ &
 %% ------ Write your code above ------
@@ -35,14 +36,45 @@ max_iter = 1000;
 %% ------ Write your code below ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %
 
-initial_position % = ...
+tol = 1e-3;
+initial_position = [0, 0; 0.78, 0; 2.35, 0; 3.14, 1; 3.14, 4]';
 path_integral = initial_position; % path integral is intially a 2x1 array that will store the path and grow to a 2xN array.
 % TODO: implement breaking conditions for while loop
 while true
     % TODO: integrate DS to get next position of the path integral
-    path_integral(:,end+1) = path_integral(:,end) % + ...
-    iter % = ...
+    current_pos = path_integral(:, end);
+    
+    vel_x = interp2(x, y, x_dot, current_pos(1), current_pos(2), 'linear', 0);
+    vel_y = interp2(x, y, y_dot, current_pos(1), current_pos(2), 'linear', 0);
+    
+    next_pos = current_pos + dt * [vel_x; vel_y];
+    
+    path_integral(:, end+1) = next_pos;
+    iter = iter + 1;
+    
+    if norm([vel_x; vel_y]) < tol || iter >= max_iter
+        break;
+    end
 end
+
+x0 = [0, 0; 0.78, 0; 2.35, 0; 3.14, 1; 3.14, 4]';
+titleName = 'Path Integral';
+x_target = [];
+
+figure;
+plot_ds(x, y, x_dot, y_dot, path_integral, x0, titleName, x_target);
+
+figure;
+hold on;
+for i = 1:size(x0, 2)
+    plot(path_integral(1, :), path_integral(2, :), 'r-', 'LineWidth', 2);
+end
+xlabel('x');
+ylabel('y');
+title('Path Integral');
+grid on;
+axis equal;
+hold off;
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ &
 %% ------ Write your code above ------
@@ -86,7 +118,7 @@ scatter(x0(1, :), x0(2, :), 100, 'r*', 'LineWidth', 2);
 
 plot(path(1,:), path(2,:), 'r', 'LineWidth', 3);
 
-if exist('x_target', 'var')
+if exist('x_target', 'var') && ~isempty(x_target)
     scatter(x_target(1, :), x_target(2, :), 100, 'bd', 'LineWidth', 2);
 end
 
