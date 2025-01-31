@@ -17,11 +17,26 @@ nb_gridpoints = 50;
 %% ------ Write your code below ------
 %  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv %
 
-x_dot = -x; % calculate velocity in x direction at each gridpoint
-y_dot = -y; % calculate velocity in y direction at each gridpoint
+M = [1, -2; 0, 1]; % Modulation matrix
+a_1 = 1;
+a_2 = -1;
+A = diag([a_1, a_2]);
 
-% Calculate absolute velocity at each gridpoint
-abs_vel = sqrt(x_dot.^2 + y_dot.^2);
+system = @(x) M * A * x;
+[X_grid, Y_grid] = meshgrid(linspace(x_limits(1), x_limits(2), nb_gridpoints), ...
+    linspace(y_limits(1), y_limits(2), nb_gridpoints));
+
+x_dot = zeros(size(X_grid));
+y_dot = zeros(size(Y_grid));
+
+for i = 1:nb_gridpoints
+    for j = 1:nb_gridpoints
+        x_point = [X_grid(i, j); Y_grid(i, j)];
+        vel = system(x_point);  % Compute velocity at each grid point
+        x_dot(i, j) = vel(1);
+        y_dot(i, j) = vel(2);
+    end
+end
 
 %  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ &
 %% ------ Write your code above ------
@@ -60,7 +75,7 @@ while iter < max_iter
     new_position = path_integral(:, end) + dt * [v_x; v_y];
     
     % Append the new position to the path
-    path_integral(:, end + 1) = new_position;
+    path_integral(:, end + 1) = new_position; %#ok<AGROW>
     
     iter = iter + 1;
 end
@@ -123,7 +138,7 @@ scatter(x0(1, :), x0(2, :), 100, 'r*', 'LineWidth', 2);
 
 plot(path(1,:), path(2,:), 'r', 'LineWidth', 3);
 
-if exist('x_target', 'var')
+if exist('x_target', 'var') && ~isempty(x_target)
     scatter(x_target(1, :), x_target(2, :), 100, 'bd', 'LineWidth', 2);
 end
 
