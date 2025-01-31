@@ -30,7 +30,8 @@ Therefore, the \underline{equilibrium point} is at \( \boxed{ (0, 0) } \).
 
 \subsection*{2. Region of attraction and stability}
 
-Given the Lyapunov function \( V(x) = x_{1}^{2} + x_{2}^{2} \), the derivative of \( V(x) \) is
+Given the Lyapunov function \( V(x) = x_{1}^{2} + x_{2}^{2} \), we can see that it is positive definite, i.e., \( V(x) > 0 \) for all \( x \neq 0 \) and \( V(0) = 0 \).
+The derivative of \( V(x) \) can be found as,
 \[
     \dot{V}(x) = \nabla V(x) \cdot f(x)
     \quad \text{where} \quad
@@ -40,5 +41,6 @@ Given the Lyapunov function \( V(x) = x_{1}^{2} + x_{2}^{2} \), the derivative o
     \implies
     \dot{V}(x) = \begin{bmatrix} 2x_{1} & 2x_{2} \end{bmatrix}
     \begin{bmatrix} -x_{1} + x_{1} x_{2} \\ -x_{2} \end{bmatrix}
-    = -2x_{1}^{2} - 2x_{2}^{2} + 2x_{1}^{2} x_{2}
+    = -2x_{1}^{2} + 2x_{1}^{2} x_{2} - 2x_{2}^{2}
+    = -2(x_{1}^{2} + x_{2}^{2}) + 2x_{1}^{2} x_{2}
 \]
