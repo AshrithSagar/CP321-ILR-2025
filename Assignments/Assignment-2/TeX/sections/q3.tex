@@ -44,3 +44,20 @@ The derivative of \( V(x) \) can be found as,
     = -2x_{1}^{2} + 2x_{1}^{2} x_{2} - 2x_{2}^{2}
     = -2(x_{1}^{2} + x_{2}^{2}) + 2x_{1}^{2} x_{2}
 \]
+The first term here \( -2(x_{1}^{2} + x_{2}^{2}) \) is always negative definite, but due to the presence of the term \( 2x_{1}^{2} x_{2} \), \( \dot{V}(x) \) is not negative definite everywhere.
+Only when \( x_{2} < 0 \), we can see that \( 2x_{1}^{2} x_{2} < 0 \) and thereby \( \dot{V}(x) < 0 \).
+Thereby, the region of attraction is given by
+\[
+    \boxed{
+        \mathcal{R} = \{ (x_1, x_2) \mid x_2 \leq 0 \}
+    }
+\]
+To check for asymptotic stability, we can use LaSalle's invariance principle.
+We first find the points where \( \dot{V}(x) = 0 \),
+\[
+    \implies
+    -2(x_{1}^{2} + x_{2}^{2}) + 2x_{1}^{2} x_{2} = 0
+    \implies
+    x_{1}^{2} x_{2} = x_{1}^{2} + x_{2}^{2}
+\]
+Locally near the equilibrium point, we can see that the only solution to this equation is \( x_{1} = x_{2} = 0 \), thereby allowing us to conclude that the equilibrium point \underline{is asymptotically stable}, by LaSalle's invariance principle.
