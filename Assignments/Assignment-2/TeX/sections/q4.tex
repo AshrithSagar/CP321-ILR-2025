@@ -25,6 +25,8 @@ Consider the pendulum DS with friction
 
 The given system is a second-order nonlinear system which be represented as, by using the state variables \( x_{1} = \theta \) and \( x_{2} = \dot{\theta} \),
 \[
+    \dot x
+    =
     \boxed{
         \begin{bmatrix}
             \dot{x}_{1} \\
@@ -74,3 +76,28 @@ The system can be linearized around the equilibrium point \( (0, 0) \) as
     \dot x = Ax, \quad
     A \triangleq \begin{bmatrix} 0 & 1 \\ -g & -1 \end{bmatrix}
 \]
+
+Now, consider the Lyapunov candidate function as
+\[
+    V(x) = \frac{1}{2} x_2^2 + g (1 - \cos x_1)
+\]
+where we can verify that \( V(0, 0) = 0 \) and that \( V(x) > 0 \) for all \( x \neq (0, 0) \), since \( x_1^2 > 0 \) and \( 1 - \cos x_1 \geq 0 \) for all \( x_1 \in \mathbb{R} \), thereby \( V(x) \) is \emph{positive definite}.
+
+Now, we can compute \( \dot V(x) \) as
+\begin{align*}
+    \implies
+    \dot V(x)
+     & =
+    \nabla V(x) \cdot \dot x
+    \\ & =
+    \begin{bmatrix} g \sin x_1 & x_2 \end{bmatrix} \cdot \begin{bmatrix} x_2 \\ -g \sin x_1 - x_2 \end{bmatrix}
+    \\ & =
+    g x_2 \sin x_1 + x_2 (-g \sin x_1 - x_2)
+    =
+    \cancel{g x_2 \sin x_1} - \cancel{g x_2 \sin x_1} - x_2^2
+    \\ & =
+    -x_2^2 \ \leq 0 \ \forall x
+\end{align*}
+thereby giving us that \( \dot V(x) \leq 0 \ \forall x \) and hence \( \dot V(x) \) is \emph{negative semi-definite}.
+
+Therefore, the \underline{equilibrium point \( (0, 0) \) is stable}.
