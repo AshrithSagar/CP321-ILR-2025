@@ -19,7 +19,15 @@ nb_gridpoints = 50;
 
 g = 9.81; % gravity
 x_dot = y; % calculate velocity in x direction at each gridpoint
-y_dot = -g * sin(x) - y; % calculate velocity in y direction at each gridpoint
+
+damping_choice = input('Do you want damping? (y/n): ', 's');
+if strcmpi(damping_choice, 'y')
+    % With damping
+    y_dot = -g * sin(x) - y;
+else
+    % Without damping
+    y_dot = -g * sin(x);
+end
 
 % Calculate absolute velocity at each gridpoint
 abs_vel = sqrt(x_dot.^2 + y_dot.^2);
