@@ -1,16 +1,19 @@
+import io
 import os
 import zipfile
-import io
-import scipy.io
+
 import numpy as np
+import scipy.io
+
 try:
     from urllib2 import urlopen
 except ImportError:
     from urllib.request import urlopen
 
 
-LASA_URL = ("http://bitbucket.org/khansari/lasahandwritingdataset/get/"
-            "38304f7c0ac4.zip")
+LASA_URL = (
+    "http://bitbucket.org/khansari/lasahandwritingdataset/get/" "38304f7c0ac4.zip"
+)
 
 
 def load_lasa(shape_idx):
@@ -62,8 +65,7 @@ def load_lasa(shape_idx):
         url = urlopen(LASA_URL)
         z = zipfile.ZipFile(io.BytesIO(url.read()))
         z.extractall(dataset_path)
-        os.rename(dataset_path + z.namelist()[0],
-                  dataset_path + "lasa_data" + os.sep)
+        os.rename(dataset_path + z.namelist()[0], dataset_path + "lasa_data" + os.sep)
 
     dataset_path += "lasa_data" + os.sep + "DataSet" + os.sep
     demos, shape_name = _load_from_matlab_file(dataset_path, shape_idx)
@@ -94,8 +96,7 @@ def _load_from_matlab_file(dataset_path, shape_idx):
         (without suffix).
     """
     file_name = sorted(os.listdir(dataset_path))[shape_idx]
-    return (scipy.io.loadmat(dataset_path + file_name)["demos"][0],
-            file_name[:-4])
+    return (scipy.io.loadmat(dataset_path + file_name)["demos"][0], file_name[:-4])
 
 
 def _convert_demonstrations(demos):
