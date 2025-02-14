@@ -7,9 +7,9 @@ import gmr
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .helpers import derivative, init_gaussians, load_data, plot_curves, streamplot
+from .helpers import derivative
 from .lasa import load_lasa
-from .models import RBFN
+from .models import LWR, RBFN, LeastSquares
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -121,29 +121,25 @@ def init_gaussians_ax(y, n=3, show_plot=False, ax=None):
     return mvns
 
 
-def fit_rbfn(dataset, n=4, bias=False, starting=0):
+def fit_least_squares(dataset, lam=1e-2, bias=False):
     # load data
     data, x, xd = load_data_ax(dataset)
 
-    # initializing gaussians
-    mvns = init_gaussians_ax(data, n)
-
     # fitting the model to data
-    model = RBFN(mvns, bias=bias)
+    model = LeastSquares(lam=lam, bias=bias)
     model.fit(x, xd)
 
     # starting point for imitation
-    x0 = data[starting][0]
+    x0 = data[6][0]
     x_rk4, t_tk4 = model.imitate(x0, t_end=10)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(20, 5))
 
     # plots for generated trajectory
     plot_curves_ax(axes[0], data, alpha=0.3, c="g", label="demonstrations")
     plot_curves_ax(
         axes[0], x_rk4[None], show_start_end=False, label="generated trajectory"
     )
-    axes[0].set_title("Generated Trajectory")
 
     # vector field plot using stream line
     plot_curves_ax(axes[1], data, alpha=0.5, c="b", label="demonstrations")
@@ -155,28 +151,81 @@ def fit_rbfn(dataset, n=4, bias=False, starting=0):
         width=3,
         color="g",
     )
-    axes[1].set_title("Vector Field")
 
 
-def different_starting_points_rbfn(dataset, starting_points, n=4, bias=False):
+def _model_imitate(data, model, n=10, starting=0):
+    fig, axes = plt.subplots(1, 3, figsize=(30, 5))
+    mvns = init_gaussians_ax(data, n, ax=axes[0])
+
+    # starting point for imitation
+    x0 = data[starting][0]
+    x_rk4, t_tk4 = model.imitate(x0, t_end=10)
+
+    # plots for generated trajectory
+    plot_curves_ax(axes[1], data, alpha=0.3, c="g", label="demonstrations")
+    plot_curves_ax(
+        axes[1], x_rk4[None], show_start_end=False, label="generated trajectory"
+    )
+    axes[1].set_title("Generated Trajectory")
+
+    # vector field plot using stream line
+    plot_curves_ax(axes[2], data, alpha=0.5, c="b", label="demonstrations")
+    streamplot_ax(
+        axes[1],
+        model.predict,
+        x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
+        y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
+        width=3,
+        color="g",
+    )
+    axes[2].set_title("Vector Field")
+
+
+def fit_lwr(dataset, n=10, bias=False):
+    data, x, xd = load_data_ax(dataset)
+    mvns = init_gaussians_ax(data, n)
+    model = LWR(mvns, bias=bias)
+    model.fit(x, xd)
+    _model_imitate(data, model, n, starting=6)
+
+
+def fit_rbfn(dataset, n=10, bias=False):
+    data, x, xd = load_data_ax(dataset)
+    mvns = init_gaussians_ax(data, n)
+    model = RBFN(mvns, bias=bias)
+    model.fit(x, xd)
+    _model_imitate(data, model, n, starting=0)
+
+
+def _get_model(model, mvns, bias):
+    if model == "lwr":
+        model = LWR(mvns, bias=bias)
+    elif model == "rbfn":
+        model = RBFN(mvns, bias=bias)
+    else:
+        raise ValueError("Model should be either 'lwr' or 'rbfn'")
+
+
+def _different_initial_points(dataset, model, initial_points, n=4, bias=False):
     """
     Generates kx2 plots for different starting points.
 
     Params:
         dataset: dataset to use
-        starting_points: array of k starting points
+        initial_points: array of k starting points
         n: number of Gaussians
         bias: whether to include bias in RBFN
     """
-    data, x, xd = load_data(dataset)
-    mvns = init_gaussians(data, n)
-    model = RBFN(mvns, bias=bias)
+    data, x, xd = load_data_ax(dataset)
+    mvns = init_gaussians_ax(data, n)
+
+    model = _get_model(model, mvns, bias)
     model.fit(x, xd)
 
-    k = len(starting_points)
+    k = len(initial_points)
     fig, axes = plt.subplots(k, 2, figsize=(10, 5 * k))
 
-    for i, start_idx in enumerate(starting_points):
+    for i, start_idx in enumerate(initial_points):
         x0 = data[start_idx][0]
         x_rk4, _ = model.imitate(x0, t_end=10)
 
@@ -201,7 +250,27 @@ def different_starting_points_rbfn(dataset, starting_points, n=4, bias=False):
     plt.show()
 
 
-def generalisation_rbfn(dataset, n_values, bias=False):
+def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
+    _different_initial_points(
+        dataset=dataset,
+        model="lwr",
+        initial_points=initial_points,
+        n=n,
+        bias=bias,
+    )
+
+
+def different_initial_points_rbfn(dataset, initial_points, n=4, bias=False):
+    _different_initial_points(
+        dataset=dataset,
+        model="rbfn",
+        initial_points=initial_points,
+        n=n,
+        bias=bias,
+    )
+
+
+def _generalisation(dataset, model, n_values, bias=False):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
 
@@ -217,7 +286,8 @@ def generalisation_rbfn(dataset, n_values, bias=False):
     for i, n in enumerate(n_values):
         mvns = init_gaussians_ax(data, n, ax=axes[i, 0])
         axes[i, 0].set_title(f"Gaussians with {n} components")
-        model = RBFN(mvns, bias=bias)
+
+        model = _get_model(model, mvns, bias)
         model.fit(x, xd)
 
         x0 = data[0][0]
@@ -242,3 +312,21 @@ def generalisation_rbfn(dataset, n_values, bias=False):
 
     plt.tight_layout()
     plt.show()
+
+
+def generalisation_lwr(dataset, n_values, bias=False):
+    _generalisation(
+        dataset=dataset,
+        model="lwr",
+        n_values=n_values,
+        bias=bias,
+    )
+
+
+def generalisation_rbfn(dataset, n_values, bias=False):
+    _generalisation(
+        dataset=dataset,
+        model="rbfn",
+        n_values=n_values,
+        bias=bias,
+    )

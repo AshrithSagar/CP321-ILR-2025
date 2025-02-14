@@ -6,7 +6,8 @@ Helper functions provided in the notebook
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
-from lasa import load_lasa
+
+from .lasa import load_lasa
 
 
 def plot_curves(x, show_start_end=True, **kwargs):

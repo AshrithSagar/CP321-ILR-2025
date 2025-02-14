@@ -85,11 +85,32 @@ class LeastSquares(BaseModel):
         self.lam = lam
 
     def fit(self, X, Y):
+        """
+        store the weight matrix into self.w
+
+        self.w should be array of shape (3,2) if bias is enabled and
+        (2,2) if bias is False
+
+
+        params:
+            X: data of shape (n_points,2)
+            Y: X_dot of shape(n_points,2)
+        """
+
         X = self._add_bias(X)
         d = X.shape[1]
         self.w = np.linalg.inv(X.T @ X + self.lam * np.eye(d)) @ (X.T @ Y)
 
     def predict(self, X):
+        """
+        returns prediction from the model X_dot
+
+        params:
+            X: array of shape (n_points,2)
+        returns:
+            predicted X_dot: array of shape (n_points,2)
+        """
+
         X = self._add_bias(X)
         return X @ self.w
 
@@ -118,7 +139,7 @@ class LWR(BaseModel):
         return predictions
 
 
-class RBFN:
+class RBFN(BaseModel):
     def __init__(self, mvns, bias=True):
         """
         gaussians for weights
@@ -169,7 +190,7 @@ class RBFN:
         return Phi @ self.w
 
 
-class GMR:
+class GMR(BaseModel):
     def __init__(self, n_mixture):
         """
         params:
