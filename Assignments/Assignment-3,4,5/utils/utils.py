@@ -9,7 +9,7 @@ import numpy as np
 
 from .helpers import derivative
 from .lasa import load_lasa
-from .models import LWR, RBFN, LeastSquares
+from .models import GMR, LWR, RBFN, BaseModelABC, LeastSquares
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -203,31 +203,31 @@ def fit_rbfn(dataset, n=10, bias=False):
     _model_imitate(data, x, xd, model, n, starting=0)
 
 
-def _get_model(model, mvns, bias):
-    if model == "lwr":
-        model = LWR(mvns, bias=bias)
-    elif model == "rbfn":
-        model = RBFN(mvns, bias=bias)
+def fit_gmr(dataset, n=10):
+    data, x, xd = load_data_ax(dataset)
+    model = GMR(n_mixture=n)
+    model.fit(x, xd, data)
+    _model_imitate(data, x, xd, model, n, starting=0)
+
+
+def _get_model(model_key, model_params):
+    if model_key == "lwr":
+        model = LWR(mvns=model_params["mvns"], bias=model_params["bias"])
+    elif model_key == "rbfn":
+        model = RBFN(mvns=model_params["mvns"], bias=model_params["bias"])
+    elif model_key == "gmr":
+        n = model_params.get("n", model_params.get("n_mixture"))
+        model = GMR(n_mixture=n)
     else:
-        raise ValueError("Model should be either 'lwr' or 'rbfn'")
+        raise ValueError("Unsupported model")
     return model
 
 
-def _different_initial_points(dataset, model_key, initial_points, n=4, bias=False):
+def _different_initial_points(dataset, model: BaseModelABC, initial_points):
     """
-    Generates kx2 plots for different starting points.
-
-    Params:
-        dataset: dataset to use
-        initial_points: array of k starting points
-        n: number of Gaussians
-        bias: whether to include bias in RBFN
+    Generates stacked plots for different starting points
     """
     data, x, xd = load_data_ax(dataset)
-    mvns = init_gaussians_ax(data, n)
-
-    model = _get_model(model_key, mvns, bias)
-    model.fit(x, xd)
 
     k = len(initial_points)
     fig, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
@@ -258,33 +258,43 @@ def _different_initial_points(dataset, model_key, initial_points, n=4, bias=Fals
 
 
 def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
+    data, x, xd = load_data_ax(dataset)
+    mvns = init_gaussians_ax(data, n)
+    model = LWR(mvns, bias=bias)
+    model.fit(x, xd)
     _different_initial_points(
-        dataset=dataset,
-        model_key="lwr",
-        initial_points=initial_points,
-        n=n,
-        bias=bias,
+        dataset=dataset, model=model, initial_points=initial_points
     )
 
 
 def different_initial_points_rbfn(dataset, initial_points, n=4, bias=False):
+    data, x, xd = load_data_ax(dataset)
+    mvns = init_gaussians_ax(data, n)
+    model = RBFN(mvns, bias=bias)
+    model.fit(x, xd)
     _different_initial_points(
-        dataset=dataset,
-        model_key="rbfn",
-        initial_points=initial_points,
-        n=n,
-        bias=bias,
+        dataset=dataset, model=model, initial_points=initial_points
     )
 
 
-def _generalisation(dataset, model_key, n_values, bias=False):
+def different_initial_points_gmr(dataset, initial_points, n=10):
+    data, x, xd = load_data_ax(dataset)
+    model = GMR(n_mixture=n)
+    model.fit(x, xd, data)
+    _different_initial_points(
+        dataset=dataset, model=model, initial_points=initial_points
+    )
+
+
+def _generalisation(dataset, model_key, model_params, n_values):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
 
     Params:
         dataset: dataset to use
-        n_values: array of different values for number of Gaussians
-        bias: whether to include bias in RBFN
+        model_key: model to use
+        model_params: additional parameters for model
+        n_values: list of number of Gaussians to use
     """
     data, x, xd = load_data_ax(dataset)
     k = len(n_values)
@@ -292,10 +302,14 @@ def _generalisation(dataset, model_key, n_values, bias=False):
 
     for i, n in enumerate(n_values):
         mvns = init_gaussians_ax(data, n, ax=axes[i, 0])
-        axes[i, 0].set_title(f"Gaussians with {n} components")
+        axes[i, 0].set_title(f"Data for {n} Gaussians")
 
-        model = _get_model(model_key, mvns, bias)
-        model.fit(x, xd)
+        model_params = {"mvns": mvns, "n": n, **model_params}
+        model = _get_model(model_key, model_params)
+        if model_key == "gmr":
+            model.fit(x, xd, data)
+        else:
+            model.fit(x, xd)
 
         x0 = data[0][0]
         x_rk4, _ = model.imitate(x0, t_end=10)
@@ -326,7 +340,7 @@ def generalisation_lwr(dataset, n_values, bias=False):
         dataset=dataset,
         model_key="lwr",
         n_values=n_values,
-        bias=bias,
+        model_params={"bias": bias},
     )
 
 
@@ -335,5 +349,14 @@ def generalisation_rbfn(dataset, n_values, bias=False):
         dataset=dataset,
         model_key="rbfn",
         n_values=n_values,
-        bias=bias,
+        model_params={"bias": bias},
+    )
+
+
+def generalisation_gmr(dataset, n_values):
+    _generalisation(
+        dataset=dataset,
+        model_key="gmr",
+        n_values=n_values,
+        model_params={},
     )

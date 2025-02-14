@@ -3,6 +3,8 @@ models.py
 Utility for models
 """
 
+from abc import ABC, abstractmethod
+
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +12,7 @@ import numpy as np
 from .helpers import plot_curves
 
 
-class BaseModel:
+class BaseModelABC(ABC):
     def __init__(self, bias=False):
         self.bias = bias
 
@@ -78,8 +80,22 @@ class BaseModel:
         f = self.ode_differential
         return self.rk4_sim(0, t_end, x0, f)
 
+    @abstractmethod
+    def fit(self, X, Y):
+        """
+        Fit the model to the data X and Y
+        """
+        pass
 
-class LeastSquares(BaseModel):
+    @abstractmethod
+    def predict(self, X):
+        """
+        Predict using the fitted model.
+        """
+        pass
+
+
+class LeastSquares(BaseModelABC):
     def __init__(self, lam=1e-2, bias=False):
         super().__init__(bias)
         self.lam = lam
@@ -115,7 +131,7 @@ class LeastSquares(BaseModel):
         return X @ self.w
 
 
-class LWR(BaseModel):
+class LWR(BaseModelABC):
     def __init__(self, mvns: list[gmr.MVN], bias=True):
         """
         gaussians for weights
@@ -175,7 +191,7 @@ class LWR(BaseModel):
         return predictions / np.maximum(total_weight[:, np.newaxis], 1e-8)
 
 
-class RBFN(BaseModel):
+class RBFN(BaseModelABC):
     def __init__(self, mvns, bias=True):
         """
         gaussians for weights
@@ -226,7 +242,7 @@ class RBFN(BaseModel):
         return Phi @ self.w
 
 
-class GMR(BaseModel):
+class GMR(BaseModelABC):
     def __init__(self, n_mixture):
         """
         params:
@@ -272,26 +288,22 @@ class GMR(BaseModel):
         """
         # Note: You cannot use gmm.predict or gmm.condition, use the formula for conditioning of gaussian mixture)
 
-        gmm = self.gmm
-        means = gmm.means
-        covariances = gmm.covariances
-        priors = gmm.priors
-        n_mixture = len(priors)
-        n_points = X.shape[0]
-        d = X.shape[1]
+        n_mixture = len(self.gmm.priors)
+        n_points, d = X.shape[0], X.shape[1]
         X_dot = np.zeros((n_points, d))
         for i in range(n_points):
             x = X[i]
-            numerator = 0
+            numerator = np.zeros(d)
             denominator = 0
             for j in range(n_mixture):
-                mean = means[j]
-                covariance = covariances[j]
-                prior = priors[j]
-                numerator += (
-                    prior * np.linalg.inv(covariance[d:, d:]) @ (x - mean[:d])
-                    + mean[d:]
+                mean, covariance, prior = (
+                    self.gmm.means[j],
+                    self.gmm.covariances[j],
+                    self.gmm.priors[j],
                 )
+                cov_yy = covariance[d:, d:] + 1e-6 * np.eye(d)
+                inv_cov_yy = np.linalg.inv(cov_yy)
+                numerator += mean[d:] + prior * inv_cov_yy @ (x - mean[:d])
                 denominator += prior
-            X_dot[i] = numerator / denominator
+            X_dot[i] = numerator / denominator if denominator > 0 else np.zeros(d)
         return X_dot
