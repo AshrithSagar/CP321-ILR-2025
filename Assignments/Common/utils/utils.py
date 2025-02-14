@@ -100,3 +100,45 @@ def different_starting_points_rbfn(dataset, starting_points, n=4, bias=False):
 
     plt.tight_layout()
     plt.show()
+
+
+def generalisation_rbfn(dataset, n_values, bias=False):
+    """
+    Generates len(n_values)x2 plots for different numbers of Gaussians.
+
+    Params:
+        dataset: dataset to use
+        n_values: array of different values for number of Gaussians
+        bias: whether to include bias in RBFN
+    """
+    data, x, xd = load_data(dataset)
+    k = len(n_values)
+    fig, axes = plt.subplots(k, 2, figsize=(10, 5 * k))
+
+    for i, n in enumerate(n_values):
+        mvns = init_gaussians(data, n)
+        model = RBFN(mvns, bias=bias)
+        model.fit(x, xd)
+
+        x0 = data[0][0]
+        x_rk4, _ = model.imitate(x0, t_end=10)
+
+        plot_curves_ax(axes[i, 0], data, alpha=0.3, c="g", label="demonstrations")
+        plot_curves_ax(
+            axes[i, 0], x_rk4[None], show_start_end=False, label="generated trajectory"
+        )
+        axes[i, 0].set_title(f"Trajectory for {n} Gaussians")
+
+        plot_curves_ax(axes[i, 1], data, alpha=0.5, c="b", label="demonstrations")
+        streamplot_ax(
+            axes[i, 1],
+            model.predict,
+            x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
+            y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
+            width=3,
+            color="g",
+        )
+        axes[i, 1].set_title(f"Vector field for {n} Gaussians")
+
+    plt.tight_layout()
+    plt.show()
