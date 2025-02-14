@@ -153,8 +153,8 @@ def fit_least_squares(dataset, lam=1e-2, bias=False):
     )
 
 
-def _model_imitate(data, model, n=10, starting=0):
-    fig, axes = plt.subplots(1, 3, figsize=(30, 5))
+def _model_imitate(data, x, xd, model, n=10, starting=0):
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
     mvns = init_gaussians_ax(data, n, ax=axes[0])
 
     # starting point for imitation
@@ -171,7 +171,7 @@ def _model_imitate(data, model, n=10, starting=0):
     # vector field plot using stream line
     plot_curves_ax(axes[2], data, alpha=0.5, c="b", label="demonstrations")
     streamplot_ax(
-        axes[1],
+        axes[2],
         model.predict,
         x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
         y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
@@ -180,13 +180,16 @@ def _model_imitate(data, model, n=10, starting=0):
     )
     axes[2].set_title("Vector Field")
 
+    plt.tight_layout()
+    plt.show()
+
 
 def fit_lwr(dataset, n=10, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
     model = LWR(mvns, bias=bias)
     model.fit(x, xd)
-    _model_imitate(data, model, n, starting=6)
+    _model_imitate(data, x, xd, model, n, starting=6)
 
 
 def fit_rbfn(dataset, n=10, bias=False):
@@ -194,7 +197,7 @@ def fit_rbfn(dataset, n=10, bias=False):
     mvns = init_gaussians_ax(data, n)
     model = RBFN(mvns, bias=bias)
     model.fit(x, xd)
-    _model_imitate(data, model, n, starting=0)
+    _model_imitate(data, x, xd, model, n, starting=0)
 
 
 def _get_model(model, mvns, bias):
@@ -204,9 +207,10 @@ def _get_model(model, mvns, bias):
         model = RBFN(mvns, bias=bias)
     else:
         raise ValueError("Model should be either 'lwr' or 'rbfn'")
+    return model
 
 
-def _different_initial_points(dataset, model, initial_points, n=4, bias=False):
+def _different_initial_points(dataset, model_key, initial_points, n=4, bias=False):
     """
     Generates kx2 plots for different starting points.
 
@@ -219,11 +223,11 @@ def _different_initial_points(dataset, model, initial_points, n=4, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
 
-    model = _get_model(model, mvns, bias)
+    model = _get_model(model_key, mvns, bias)
     model.fit(x, xd)
 
     k = len(initial_points)
-    fig, axes = plt.subplots(k, 2, figsize=(10, 5 * k))
+    fig, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
 
     for i, start_idx in enumerate(initial_points):
         x0 = data[start_idx][0]
@@ -253,7 +257,7 @@ def _different_initial_points(dataset, model, initial_points, n=4, bias=False):
 def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
     _different_initial_points(
         dataset=dataset,
-        model="lwr",
+        model_key="lwr",
         initial_points=initial_points,
         n=n,
         bias=bias,
@@ -263,14 +267,14 @@ def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
 def different_initial_points_rbfn(dataset, initial_points, n=4, bias=False):
     _different_initial_points(
         dataset=dataset,
-        model="rbfn",
+        model_key="rbfn",
         initial_points=initial_points,
         n=n,
         bias=bias,
     )
 
 
-def _generalisation(dataset, model, n_values, bias=False):
+def _generalisation(dataset, model_key, n_values, bias=False):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
 
@@ -281,13 +285,13 @@ def _generalisation(dataset, model, n_values, bias=False):
     """
     data, x, xd = load_data_ax(dataset)
     k = len(n_values)
-    fig, axes = plt.subplots(k, 3, figsize=(10, 5 * k))
+    fig, axes = plt.subplots(k, 3, figsize=(12, 4 * k))
 
     for i, n in enumerate(n_values):
         mvns = init_gaussians_ax(data, n, ax=axes[i, 0])
         axes[i, 0].set_title(f"Gaussians with {n} components")
 
-        model = _get_model(model, mvns, bias)
+        model = _get_model(model_key, mvns, bias)
         model.fit(x, xd)
 
         x0 = data[0][0]
@@ -317,7 +321,7 @@ def _generalisation(dataset, model, n_values, bias=False):
 def generalisation_lwr(dataset, n_values, bias=False):
     _generalisation(
         dataset=dataset,
-        model="lwr",
+        model_key="lwr",
         n_values=n_values,
         bias=bias,
     )
@@ -326,7 +330,7 @@ def generalisation_lwr(dataset, n_values, bias=False):
 def generalisation_rbfn(dataset, n_values, bias=False):
     _generalisation(
         dataset=dataset,
-        model="rbfn",
+        model_key="rbfn",
         n_values=n_values,
         bias=bias,
     )
