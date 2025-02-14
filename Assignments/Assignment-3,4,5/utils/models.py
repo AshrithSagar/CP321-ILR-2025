@@ -116,27 +116,63 @@ class LeastSquares(BaseModel):
 
 
 class LWR(BaseModel):
-    def __init__(self, mvns, bias=True):
+    def __init__(self, mvns: list[gmr.MVN], bias=True):
+        """
+        gaussians for weights
+        params:
+          mvns: list of gaussians
+          bias: x@weight+bias
+        """
         super().__init__(bias)
         self.mvns = mvns
         self.ws = None
 
     def fit(self, X, Y):
+        """
+        gets the weight matrix into self.ws
+
+        self.ws is a list of length len(self.mvns), with each element as weight matrix (3,2) if bias is True, (2,2) if bias is False
+
+        params:
+            X: data of shape (n_points,2)
+            Y: X_dot of shape(n_points,2)
+        """
+
         X = self._add_bias(X)
         self.ws = []
+
         for mvn in self.mvns:
-            nfe = mvn.to_norm_factor_and_exponents(X)[0][:, None]
-            W = np.linalg.inv(X.T @ (nfe * X) + 1e-6 * np.eye(X.shape[1])) @ (
-                X.T @ (nfe * Y)
-            )
-            self.ws.append(W)
+            weights = mvn.to_probability_density(X)
+            W = np.diag(weights)
+            XtWX = X.T @ W @ X
+            XtWY = X.T @ W @ Y
+            W_opt = np.linalg.solve(XtWX, XtWY)
+            self.ws.append(W_opt)
 
     def predict(self, X):
+        """
+        returns prediction from the model =>X_dot
+
+        merge the multple predictions from different weight matrices.
+
+        params:
+            X: array of shape (n_points,2)
+        returns:
+            predicted X_dot: array of shape (n_points,2)
+        """
+
         X = self._add_bias(X)
         predictions = np.zeros((X.shape[0], self.ws[0].shape[1]))
-        for i, mvn in enumerate(self.mvns):
-            predictions += X @ self.ws[i] * mvn.pdf(X)
-        return predictions
+        total_weight = np.zeros(X.shape[0])
+
+        for i in range(len(self.mvns)):
+            mvn = self.mvns[i]
+            W_opt = self.ws[i]
+            weights = mvn.to_probability_density(X)
+            predictions += (X @ W_opt) * weights[:, np.newaxis]
+            total_weight += weights
+
+        return predictions / np.maximum(total_weight[:, np.newaxis], 1e-8)
 
 
 class RBFN(BaseModel):

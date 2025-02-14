@@ -133,7 +133,7 @@ def fit_least_squares(dataset, lam=1e-2, bias=False):
     x0 = data[6][0]
     x_rk4, t_tk4 = model.imitate(x0, t_end=10)
 
-    fig, axes = plt.subplots(1, 2, figsize=(20, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     # plots for generated trajectory
     plot_curves_ax(axes[0], data, alpha=0.3, c="g", label="demonstrations")
@@ -151,6 +151,9 @@ def fit_least_squares(dataset, lam=1e-2, bias=False):
         width=3,
         color="g",
     )
+
+    plt.tight_layout()
+    plt.show()
 
 
 def _model_imitate(data, x, xd, model, n=10, starting=0):
