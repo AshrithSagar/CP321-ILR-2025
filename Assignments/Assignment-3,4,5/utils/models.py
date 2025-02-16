@@ -260,6 +260,11 @@ class GMR(BaseModelABC):
         """
         Z = np.hstack([X, Y])
         self.gmm = self.gmm.from_samples(Z, n_iter=100, init_params="kmeans++")
+
+    def visualise_fit(self, data):
+        """
+        Visualize the fitted GMM components and plot the training data.
+        """
         splot = plt.subplot(111)
         mvns = [
             gmr.MVN(
@@ -288,22 +293,38 @@ class GMR(BaseModelABC):
         """
         # Note: You cannot use gmm.predict or gmm.condition, use the formula for conditioning of gaussian mixture)
 
-        n_mixture = len(self.gmm.priors)
-        n_points, d = X.shape[0], X.shape[1]
-        X_dot = np.zeros((n_points, d))
-        for i in range(n_points):
-            x = X[i]
-            numerator = np.zeros(d)
-            denominator = 0
-            for j in range(n_mixture):
-                mean, covariance, prior = (
-                    self.gmm.means[j],
-                    self.gmm.covariances[j],
-                    self.gmm.priors[j],
-                )
-                cov_yy = covariance[d:, d:] + 1e-6 * np.eye(d)
-                inv_cov_yy = np.linalg.inv(cov_yy)
-                numerator += mean[d:] + prior * inv_cov_yy @ (x - mean[:d])
-                denominator += prior
-            X_dot[i] = numerator / denominator if denominator > 0 else np.zeros(d)
-        return X_dot
+        n_points = X.shape[0]
+        n_components = len(self.gmm.priors)
+        d_x, d_y = 2, 2
+
+        weights = np.zeros((n_points, n_components))
+        weighted_cond_means = np.zeros((n_points, d_y))
+
+        for k in range(n_components):
+            mu = self.gmm.means[k]
+            mu_x, mu_y = mu[:d_x], mu[d_x:]
+
+            Sigma = self.gmm.covariances[k]
+            Sigma_xx = Sigma[:d_x, :d_x]
+            Sigma_yx = Sigma[d_x:, :d_x]
+
+            inv_Sigma_xx = np.linalg.inv(Sigma_xx)
+            det_Sigma_xx = np.linalg.det(Sigma_xx)
+            norm_const = 1.0 / (2 * np.pi * np.sqrt(det_Sigma_xx))
+
+            diff = X - mu_x
+            # Efficient quadratic form computation using Einstein summation convention
+            exponent = -0.5 * np.einsum("ij,ij->i", diff @ inv_Sigma_xx, diff)
+            pdf = norm_const * np.exp(exponent)
+
+            weights[:, k] = self.gmm.priors[k] * pdf
+
+            # E[Y|x, k] = mu_y + Sigma_yx * inv(Sigma_xx) * (x - mu_x)
+            A_k = Sigma_yx @ inv_Sigma_xx
+            cond_mean = mu_y + diff @ A_k.T
+
+            weighted_cond_means += weights[:, k : k + 1] * cond_mean
+
+        weight_sum = np.sum(weights, axis=1, keepdims=True)
+        weight_sum[weight_sum == 0] = 1e-10
+        return weighted_cond_means / weight_sum
