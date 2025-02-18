@@ -331,7 +331,7 @@ class GMR(BaseModelABC):
         return weighted_cond_means / weight_sum
 
 
-class GPR:
+class GPR(BaseModelABC):
     def __init__(self, kernel, **kwargs):
         """
         initializing the gpr model with a kernel

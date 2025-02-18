@@ -160,24 +160,27 @@ def _model_imitate(data, x, xd, model, num_gaussians=None, starting=0, t_end=10,
     if num_gaussians is not None:
         fig, axes = plt.subplots(1, 3, figsize=(12, 4))
         mvns = init_gaussians_ax(data, num_gaussians, ax=axes[0])
+        ax_idx = 1
     else:
         fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        ax_idx = 0
 
     # starting point for imitation
     x0 = data[starting][0]
     x_rk4, t_tk4 = model.imitate(x0, t_end=t_end)
 
     # plots for generated trajectory
-    ax = axes[0] if num_gaussians is not None else axes[1]
-    plot_curves_ax(ax, data, alpha=0.3, c="g", label="demonstrations")
-    plot_curves_ax(ax, x_rk4[None], show_start_end=False, label="generated trajectory")
-    ax.set_title("Generated Trajectory")
+    plot_curves_ax(axes[ax_idx], data, alpha=0.3, c="g", label="demonstrations")
+    plot_curves_ax(
+        axes[ax_idx], x_rk4[None], show_start_end=False, label="generated trajectory"
+    )
+    axes[ax_idx].set_title("Generated Trajectory")
 
     # vector field plot using stream line
-    ax = axes[1] if num_gaussians is not None else axes[2]
-    plot_curves_ax(ax, data, alpha=0.5, c="b", label="demonstrations")
+    ax_idx += 1
+    plot_curves_ax(axes[ax_idx], data, alpha=0.5, c="b", label="demonstrations")
     streamplot_ax(
-        ax,
+        axes[ax_idx],
         model.predict,
         x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
         y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
@@ -185,7 +188,7 @@ def _model_imitate(data, x, xd, model, num_gaussians=None, starting=0, t_end=10,
         color="g",
         n=n,
     )
-    ax.set_title("Vector Field")
+    axes[ax_idx].set_title("Vector Field")
 
     plt.tight_layout()
     plt.show()
@@ -214,7 +217,7 @@ def fit_gmr(dataset, n=10):
     _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
 
 
-def fit_gpr(dataset, kernel, alpha=1, num_traj=1):
+def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_vector_fields=False):
     def plot_vector_field(data, x, xd, model, n, ax=None, title=None):
         """
         n: number of trajectories selected for training
@@ -235,10 +238,12 @@ def fit_gpr(dataset, kernel, alpha=1, num_traj=1):
     data, x, xd = load_data_ax(dataset)
     model = GPR(kernel=kernel, alpha=alpha)
     x_new, xd_new = select_trajectories(data, x, xd, num_traj)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    plot_vector_field(data, x, xd, model, num_traj, ax=axes[0], title="Prior")
+    if show_vector_fields:
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        plot_vector_field(data, x, xd, model, num_traj, ax=axes[0], title="Prior")
     model.fit(x_new, xd_new)
-    plot_vector_field(data, x, xd, model, num_traj, ax=axes[1], title="Posterior")
+    if show_vector_fields:
+        plot_vector_field(data, x, xd, model, num_traj, ax=axes[1], title="Posterior")
     _model_imitate(data, x, xd, model, starting=num_traj - 1, t_end=5, n=100)
 
 
