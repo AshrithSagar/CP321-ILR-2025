@@ -217,7 +217,7 @@ def fit_gmr(dataset, n=10):
     _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
 
 
-def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_vector_fields=False):
+def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_prior_posterior=False):
     def plot_vector_field(data, x, xd, model, n, ax=None, title=None):
         """
         n: number of trajectories selected for training
@@ -238,11 +238,11 @@ def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_vector_fields=False):
     data, x, xd = load_data_ax(dataset)
     model = GPR(kernel=kernel, alpha=alpha)
     x_new, xd_new = select_trajectories(data, x, xd, num_traj)
-    if show_vector_fields:
+    if show_prior_posterior:
         fig, axes = plt.subplots(1, 2, figsize=(10, 4))
         plot_vector_field(data, x, xd, model, num_traj, ax=axes[0], title="Prior")
     model.fit(x_new, xd_new)
-    if show_vector_fields:
+    if show_prior_posterior:
         plot_vector_field(data, x, xd, model, num_traj, ax=axes[1], title="Posterior")
     _model_imitate(data, x, xd, model, starting=num_traj - 1, t_end=5, n=100)
 
