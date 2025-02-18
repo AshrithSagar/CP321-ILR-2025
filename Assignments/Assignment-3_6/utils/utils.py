@@ -9,7 +9,7 @@ import numpy as np
 
 from .helpers import derivative
 from .lasa import load_lasa
-from .models import GMR, LWR, RBFN, BaseModelABC, LeastSquares
+from .models import GMR, GPR, LWR, RBFN, BaseModelABC, LeastSquares
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -156,32 +156,36 @@ def fit_least_squares(dataset, lam=1e-2, bias=False):
     plt.show()
 
 
-def _model_imitate(data, x, xd, model, n=10, starting=0):
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    mvns = init_gaussians_ax(data, n, ax=axes[0])
+def _model_imitate(data, x, xd, model, num_gaussians=None, starting=0, t_end=10, n=100):
+    if num_gaussians is not None:
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+        mvns = init_gaussians_ax(data, num_gaussians, ax=axes[0])
+    else:
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
     # starting point for imitation
     x0 = data[starting][0]
-    x_rk4, t_tk4 = model.imitate(x0, t_end=10)
+    x_rk4, t_tk4 = model.imitate(x0, t_end=t_end)
 
     # plots for generated trajectory
-    plot_curves_ax(axes[1], data, alpha=0.3, c="g", label="demonstrations")
-    plot_curves_ax(
-        axes[1], x_rk4[None], show_start_end=False, label="generated trajectory"
-    )
-    axes[1].set_title("Generated Trajectory")
+    ax = axes[0] if num_gaussians is not None else axes[1]
+    plot_curves_ax(ax, data, alpha=0.3, c="g", label="demonstrations")
+    plot_curves_ax(ax, x_rk4[None], show_start_end=False, label="generated trajectory")
+    ax.set_title("Generated Trajectory")
 
     # vector field plot using stream line
-    plot_curves_ax(axes[2], data, alpha=0.5, c="b", label="demonstrations")
+    ax = axes[1] if num_gaussians is not None else axes[2]
+    plot_curves_ax(ax, data, alpha=0.5, c="b", label="demonstrations")
     streamplot_ax(
-        axes[2],
+        ax,
         model.predict,
         x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
         y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
         width=3,
         color="g",
+        n=n,
     )
-    axes[2].set_title("Vector Field")
+    ax.set_title("Vector Field")
 
     plt.tight_layout()
     plt.show()
@@ -192,7 +196,7 @@ def fit_lwr(dataset, n=10, bias=False):
     mvns = init_gaussians_ax(data, n)
     model = LWR(mvns, bias=bias)
     model.fit(x, xd)
-    _model_imitate(data, x, xd, model, n, starting=6)
+    _model_imitate(data, x, xd, model, num_gaussians=n, starting=6)
 
 
 def fit_rbfn(dataset, n=10, bias=False):
@@ -200,14 +204,53 @@ def fit_rbfn(dataset, n=10, bias=False):
     mvns = init_gaussians_ax(data, n)
     model = RBFN(mvns, bias=bias)
     model.fit(x, xd)
-    _model_imitate(data, x, xd, model, n, starting=0)
+    _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
 
 
 def fit_gmr(dataset, n=10):
     data, x, xd = load_data_ax(dataset)
     model = GMR(n_mixture=n)
     model.fit(x, xd, data)
-    _model_imitate(data, x, xd, model, n, starting=0)
+    _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
+
+
+def fit_gpr(dataset, kernel, alpha=1, num_traj=1):
+    def plot_vector_field(data, x, xd, model, n, ax=None, title=None):
+        """
+        n: number of trajectories selected for training
+        """
+        plot_curves_ax(ax, data[:n], alpha=0.5, c="b", label="demonstrations")
+        streamplot_ax(
+            ax,
+            model.sample,
+            x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
+            y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
+            width=3,
+            color="g",
+            n=50,
+        )
+        if title:
+            ax.set_title(title)
+
+    data, x, xd = load_data_ax(dataset)
+    model = GPR(kernel=kernel, alpha=alpha)
+    x_new, xd_new = select_trajectories(data, x, xd, num_traj)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+    plot_vector_field(data, x, xd, model, num_traj, ax=axes[0], title="Prior")
+    model.fit(x_new, xd_new)
+    plot_vector_field(data, x, xd, model, num_traj, ax=axes[1], title="Posterior")
+    _model_imitate(data, x, xd, model, starting=num_traj - 1, t_end=5, n=100)
+
+
+def select_trajectories(data, x, xd, n):
+    """
+    n: number of trajectories selected for training
+    """
+    x_new = x.reshape(*data.shape)
+    x_new = x_new[:n].reshape(-1, 2)
+    xd_new = xd.reshape(*data.shape)
+    xd_new = xd_new[:n].reshape(-1, 2)
+    return x_new, xd_new
 
 
 def _get_model(model_key, model_params):

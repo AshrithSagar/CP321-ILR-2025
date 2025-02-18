@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.gaussian_process import GaussianProcessRegressor
 
 from .helpers import plot_curves
 
@@ -328,3 +329,42 @@ class GMR(BaseModelABC):
         weight_sum = np.sum(weights, axis=1, keepdims=True)
         weight_sum[weight_sum == 0] = 1e-10
         return weighted_cond_means / weight_sum
+
+
+class GPR:
+    def __init__(self, kernel, **kwargs):
+        """
+        initializing the gpr model with a kernel
+        """
+        self.gpr = GaussianProcessRegressor(kernel, n_targets=2, **kwargs)
+
+    def sample(self, X):
+
+        return self.gpr.sample_y(X, n_samples=1)[:, :, 0]
+
+    def fit(self, X, Y):
+        """
+        store the coefficients in self.coeff
+
+        params:
+            X: data of shape (n_points,2)
+            Y: X_dot of shape(n_points,2)
+        """
+
+        self.gpr.fit(X, Y)
+        self.X_train = X
+        K = self.gpr.kernel_(X) + np.eye(X.shape[0]) * self.gpr.alpha
+        self.coeff = np.linalg.solve(K, Y)
+
+    def predict(self, X_star):
+        """
+        returns prediction from the model X_dot
+
+        params:
+            X: array of shape (n_points,2)
+        returns:
+            predicted X_dot: array of shape (n_points,2)
+        """
+
+        K_star = self.gpr.kernel_(X_star, self.X_train)
+        return K_star.dot(self.coeff)
