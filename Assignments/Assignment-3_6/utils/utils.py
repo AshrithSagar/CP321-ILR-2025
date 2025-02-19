@@ -334,6 +334,16 @@ def different_initial_points_gmr(dataset, initial_points, n=10):
     )
 
 
+def different_initial_points_gpr(dataset, kernel, initial_points, alpha=1, num_traj=1):
+    data, x, xd = load_data_ax(dataset)
+    model = GPR(kernel=kernel, alpha=alpha)
+    x_new, xd_new = select_trajectories(data, x, xd, num_traj)
+    model.fit(x_new, xd_new)
+    _different_initial_points(
+        dataset=dataset, model=model, initial_points=initial_points
+    )
+
+
 def _generalisation(dataset, model_key, model_params, n_values):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
