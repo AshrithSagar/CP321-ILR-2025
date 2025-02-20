@@ -3,6 +3,8 @@ utils.py
 Utility functions for ease of plotting
 """
 
+from typing import Optional
+
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
@@ -266,6 +268,8 @@ def _get_model(model_key, model_params):
     elif model_key == "gmr":
         n = model_params.get("n", model_params.get("n_mixture"))
         model = GMR(n_mixture=n)
+    elif model_key == "gpr":
+        model = GPR(kernel=model_params["kernel"], alpha=model_params["alpha"])
     else:
         raise ValueError("Unsupported model")
     return model
@@ -344,7 +348,14 @@ def different_initial_points_gpr(dataset, kernel, initial_points, alpha=1, num_t
     )
 
 
-def _generalisation(dataset, model_key, model_params, n_values):
+def _generalisation_n(
+    dataset: str,
+    model_key: str,
+    model_params: dict,
+    n_values: list[int],
+    starting: int = 0,
+    t_end: int = 10,
+):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
 
@@ -357,6 +368,7 @@ def _generalisation(dataset, model_key, model_params, n_values):
     data, x, xd = load_data_ax(dataset)
     k = len(n_values)
     fig, axes = plt.subplots(k, 3, figsize=(12, 4 * k))
+    axes = np.atleast_2d(axes)
 
     for i, n in enumerate(n_values):
         mvns = init_gaussians_ax(data, n, ax=axes[i, 0])
@@ -369,8 +381,8 @@ def _generalisation(dataset, model_key, model_params, n_values):
         else:
             model.fit(x, xd)
 
-        x0 = data[0][0]
-        x_rk4, _ = model.imitate(x0, t_end=10)
+        x0 = data[starting][0]
+        x_rk4, _ = model.imitate(x0, t_end=t_end)
 
         plot_curves_ax(axes[i, 1], data, alpha=0.3, c="g", label="demonstrations")
         plot_curves_ax(
@@ -393,8 +405,65 @@ def _generalisation(dataset, model_key, model_params, n_values):
     plt.show()
 
 
+def _generalisation_kernel(
+    dataset: str,
+    model_key: str,
+    model_params: dict,
+    kernels: dict[str, callable],
+    num_traj: Optional[int] = 1,
+    starting: int = 0,
+    t_end: int = 10,
+):
+    """
+    Generates len(kernels)x2 plots for different kernels.
+
+    Params:
+        dataset: dataset to use
+        model_key: model to use
+        model_params: additional parameters for model
+        kernels: list of kernels to use
+        num_traj: number of trajectories to use for fit
+    """
+    data, x, xd = load_data_ax(dataset)
+    k = len(kernels)
+    fig, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
+    axes = np.atleast_2d(axes)
+
+    for i, (kernel, kernel_fn) in enumerate(kernels.items()):
+        model_params = {"kernel": kernel_fn, **model_params}
+        model = _get_model(model_key, model_params)
+        if num_traj is not None:
+            x_new, xd_new = select_trajectories(data, x, xd, n=num_traj)
+            model.fit(x_new, xd_new)
+        else:
+            model.fit(x, xd)
+
+        x0 = data[starting][0]
+        x_rk4, _ = model.imitate(x0, t_end=t_end)
+
+        plot_curves_ax(axes[i, 0], data, alpha=0.3, c="g", label="demonstrations")
+        plot_curves_ax(
+            axes[i, 0], x_rk4[None], show_start_end=False, label="generated trajectory"
+        )
+        axes[i, 0].set_title(f"Trajectory for {kernel} kernel")
+
+        plot_curves_ax(axes[i, 1], data, alpha=0.5, c="b", label="demonstrations")
+        streamplot_ax(
+            axes[i, 1],
+            model.predict,
+            x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
+            y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
+            width=3,
+            color="g",
+        )
+        axes[i, 1].set_title(f"Vector field for {kernel} kernel")
+
+    plt.tight_layout()
+    plt.show()
+
+
 def generalisation_lwr(dataset, n_values, bias=False):
-    _generalisation(
+    _generalisation_n(
         dataset=dataset,
         model_key="lwr",
         n_values=n_values,
@@ -403,7 +472,7 @@ def generalisation_lwr(dataset, n_values, bias=False):
 
 
 def generalisation_rbfn(dataset, n_values, bias=False):
-    _generalisation(
+    _generalisation_n(
         dataset=dataset,
         model_key="rbfn",
         n_values=n_values,
@@ -412,9 +481,26 @@ def generalisation_rbfn(dataset, n_values, bias=False):
 
 
 def generalisation_gmr(dataset, n_values):
-    _generalisation(
+    _generalisation_n(
         dataset=dataset,
         model_key="gmr",
         n_values=n_values,
         model_params={},
+    )
+
+
+def generalisation_gpr(
+    dataset: str,
+    kernels: dict[str, callable],
+    alpha: int = 1,
+    num_traj: int = 1,
+    t_end: int = 5,
+):
+    _generalisation_kernel(
+        dataset=dataset,
+        model_key="gpr",
+        kernels=kernels,
+        model_params={"alpha": alpha},
+        num_traj=num_traj,
+        t_end=t_end,
     )
