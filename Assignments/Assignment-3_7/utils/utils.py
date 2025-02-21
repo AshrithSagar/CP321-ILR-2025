@@ -297,7 +297,9 @@ def _get_model(model_key, model_params):
     return model
 
 
-def _different_initial_points(dataset, model: BaseModelABC, initial_points):
+def _different_initial_points(
+    dataset, model: BaseModelABC, initial_points, streamplot_method="predict"
+):
     """
     Generates stacked plots for different starting points
     """
@@ -319,7 +321,7 @@ def _different_initial_points(dataset, model: BaseModelABC, initial_points):
         plot_curves_ax(axes[i, 1], data, alpha=0.5, c="b", label="demonstrations")
         streamplot_ax(
             axes[i, 1],
-            model.predict,
+            getattr(model, streamplot_method),
             x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
             y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
             width=3,
@@ -387,6 +389,7 @@ def _generalisation_n(
     n_values: list[int],
     starting: int = 0,
     t_end: int = 10,
+    streamplot_method: str = "predict",
 ):
     """
     Generates len(n_values)x2 plots for different numbers of Gaussians.
@@ -425,7 +428,7 @@ def _generalisation_n(
         plot_curves_ax(axes[i, 2], data, alpha=0.5, c="b", label="demonstrations")
         streamplot_ax(
             axes[i, 2],
-            model.predict,
+            getattr(model, streamplot_method),
             x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
             y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
             width=3,
@@ -445,6 +448,7 @@ def _generalisation_kernel(
     num_traj: Optional[int] = 1,
     starting: int = 0,
     t_end: int = 10,
+    streamplot_method: str = "predict",
 ):
     """
     Generates len(kernels)x2 plots for different kernels.
@@ -482,7 +486,7 @@ def _generalisation_kernel(
         plot_curves_ax(axes[i, 1], data, alpha=0.5, c="b", label="demonstrations")
         streamplot_ax(
             axes[i, 1],
-            model.predict,
+            getattr(model, streamplot_method),
             x_axis=(min(x[:, 0]) - 15, max(x[:, 0]) + 15),
             y_axis=(min(x[:, 1]) - 15, max(x[:, 1]) + 15),
             width=3,
