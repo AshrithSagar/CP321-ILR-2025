@@ -11,7 +11,7 @@ import numpy as np
 
 from .helpers import derivative
 from .lasa import load_lasa
-from .models import GMR, GPR, LWR, RBFN, BaseModelABC, LeastSquares
+from .models import GMR, GPR, LWR, RBFN, SEDS, BaseModelABC, LeastSquares
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -249,6 +249,14 @@ def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_prior_posterior=False):
     _model_imitate(data, x, xd, model, starting=num_traj - 1, t_end=5, n=100)
 
 
+def fit_seds(dataset, n_mixture=10):
+    data, x, xd = load_data_ax(dataset)
+    attractor = data[0][-1]
+    model = SEDS(attractor, n_mixture=n_mixture)
+    model.fit(x, xd)
+    _model_imitate(data, x, xd, model, t_end=5, n=100)
+
+
 def select_trajectories(data, x, xd, n):
     """
     n: number of trajectories selected for training
@@ -262,14 +270,28 @@ def select_trajectories(data, x, xd, n):
 
 def _get_model(model_key, model_params):
     if model_key == "lwr":
-        model = LWR(mvns=model_params["mvns"], bias=model_params["bias"])
+        model = LWR(
+            mvns=model_params["mvns"],
+            bias=model_params["bias"],
+        )
     elif model_key == "rbfn":
-        model = RBFN(mvns=model_params["mvns"], bias=model_params["bias"])
+        model = RBFN(
+            mvns=model_params["mvns"],
+            bias=model_params["bias"],
+        )
     elif model_key == "gmr":
         n = model_params.get("n", model_params.get("n_mixture"))
         model = GMR(n_mixture=n)
     elif model_key == "gpr":
-        model = GPR(kernel=model_params["kernel"], alpha=model_params["alpha"])
+        model = GPR(
+            kernel=model_params["kernel"],
+            alpha=model_params["alpha"],
+        )
+    elif model_key == "seds":
+        model = SEDS(
+            attractor=model_params["attractor"],
+            n_mixture=model_params["n_mixture"],
+        )
     else:
         raise ValueError("Unsupported model")
     return model
@@ -348,6 +370,16 @@ def different_initial_points_gpr(dataset, kernel, initial_points, alpha=1, num_t
     )
 
 
+def different_initial_points_seds(dataset, initial_points, n_mixture=10):
+    data, x, xd = load_data_ax(dataset)
+    attractor = data[0][-1]
+    model = SEDS(attractor, n_mixture=n_mixture)
+    model.fit(x, xd)
+    _different_initial_points(
+        dataset=dataset, model=model, initial_points=initial_points
+    )
+
+
 def _generalisation_n(
     dataset: str,
     model_key: str,
@@ -374,7 +406,7 @@ def _generalisation_n(
         mvns = init_gaussians_ax(data, n, ax=axes[i, 0])
         axes[i, 0].set_title(f"Data for {n} Gaussians")
 
-        model_params = {"mvns": mvns, "n": n, **model_params}
+        model_params = {"mvns": mvns, "n": n, "n_mixture": n, **model_params}
         model = _get_model(model_key, model_params)
         if model_key == "gmr":
             model.fit(x, xd, data)
@@ -503,4 +535,14 @@ def generalisation_gpr(
         model_params={"alpha": alpha},
         num_traj=num_traj,
         t_end=t_end,
+    )
+
+
+def generalisation_seds(dataset: str, n_values: list[int]):
+    data, x, xd = load_data_ax(dataset)
+    _generalisation_n(
+        dataset=dataset,
+        model_key="seds",
+        n_values=n_values,
+        model_params={"attractor": data[0][-1]},
     )
