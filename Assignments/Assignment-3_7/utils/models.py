@@ -744,9 +744,8 @@ class DMP(BaseModelABC):
             features: array of shape (n_steps,n_features)
         """
         ################################
-        features = np.exp(-hz * (z[:, None] - cz) ** 2)
-        features = features / np.sum(features, axis=1, keepdims=True)[:, None]
-        return features
+        psi = np.exp(-hz * (z[:, None] - cz[None, :]) ** 2)
+        return psi / np.sum(psi, axis=1, keepdims=True)
         ################################
 
     def fit(self, x: NDArray):
@@ -761,8 +760,9 @@ class DMP(BaseModelABC):
         # assumption is that g(goal point) is the end of the trajectory , and x0 is the start of the trajectory
         # self.x (array of shape (n_steps,2) , self.x0 (array of shape (2,)) , self.g (array of shape (2,))
         ################################
-        self.x0, self.g = x[0], x[-1]
         self.x = x
+        self.x0 = x[0]
+        self.g = x[-1]
         ################################
 
         self.T_train = 1.0
@@ -778,8 +778,8 @@ class DMP(BaseModelABC):
         # calulate f_target as mentioned in the theory part and store in "f_target" variable
         # f_target (array of shape (n_steps,2))
         ################################
-        f_target = self._dt**2 * self.xdd - self.alpha * (
-            self.beta * (self.g - x) - self._dt * self.xd
+        f_target = (self.T_train**2) * self.xdd - self.alpha * (
+            self.beta * (self.g - x) - self.T_train * self.xd
         )
         ################################
 
@@ -787,12 +787,12 @@ class DMP(BaseModelABC):
         # information about self.hz  (scaling parameter) is given in the theory part
         # self.cz (array of shape (n_features,)),self.hz (array of shape(n_features,))
         ################################
-        self.cz = np.linspace(0, 1, self.n_features)
+        self.cz = np.linspace(0, self.T_train, self.n_features)
         self.hz = self.n_features / (self.cz + 1e-8)
         ################################
 
         t = np.linspace(0, self.T_train, x.shape[0])
-        z = np.exp(-self.alpha_z * t)
+        z = np.exp(-self.alpha_z * t / self.T_train)
         # store the feature matrix in "feature" variable, use the get_features method.
         # features (array of shape (n_steps,n_features))
         ################################
@@ -803,7 +803,8 @@ class DMP(BaseModelABC):
         # self.w (array of shape (n_features,2))
         ################################
         F: NDArray = f_target / (self.g - self.x0)
-        self.w = np.linalg.pinv(features) @ F
+        # self.w = np.linalg.pinv(features) @ F
+        self.w = np.linalg.lstsq(features * z[:, None], F, rcond=None)[0]
         ################################
 
     def predict(self, X):
@@ -824,9 +825,9 @@ class DMP(BaseModelABC):
         # here cz is the centers of the gaussians, hz are the scaling factors
         # forcing function definition given in the theory part
         ################################
-        features = self.get_features(np.array([z]), cz, hz)
-        f_ext = features @ self.w
-        return f_ext
+        psi = np.exp(-hz * (z - cz) ** 2)
+        psi /= np.sum(psi)
+        return (self.g - self.x0) * np.dot(psi, self.w) * z
         ################################
 
     def ode_differential(self, x, t, f_ext):
@@ -843,22 +844,15 @@ class DMP(BaseModelABC):
         # Use the above hyperparameters for dynamical system
         ################################
         x1, x2, x1_dot, x2_dot, z = x
-        z_dot = -alpha_z / tau * z
         f = f_ext(z)
-        x1_dot_dot = (
-            1 / tau**2 * (alpha * (beta * (self.g[0] - x1) - tau * x1_dot) + f[0])
+        x_ddot = (
+            alpha
+            * (beta * (self.g - np.array([x1, x2])) - tau * np.array([x1_dot, x2_dot]))
+            + f
         )
-        x2_dot_dot = (
-            1 / tau**2 * (alpha * (beta * (self.g[1] - x2) - tau * x2_dot) + f[1])
-        )
+        z_dot = -alpha_z * z / tau
         return np.array(
-            [
-                x1_dot.item(),
-                x2_dot.item(),
-                x1_dot_dot.item(),
-                x2_dot_dot.item(),
-                z_dot,
-            ]
+            [x1_dot, x2_dot, x_ddot[0] / self.tau**2, x_ddot[1] / self.tau**2, z_dot]
         )
         ################################
 
