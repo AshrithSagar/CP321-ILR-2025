@@ -744,8 +744,8 @@ class DMP(BaseModelABC):
             features: array of shape (n_steps,n_features)
         """
         ################################
-        features = np.exp(-hz * (z - cz) ** 2)
-        features = features / np.sum(features, axis=1, keepdims=True)
+        features = np.exp(-hz * (z[:, None] - cz) ** 2)
+        features = features / np.sum(features, axis=1, keepdims=True)[:, None]
         return features
         ################################
 
@@ -788,7 +788,7 @@ class DMP(BaseModelABC):
         # self.cz (array of shape (n_features,)),self.hz (array of shape(n_features,))
         ################################
         self.cz = np.linspace(0, 1, self.n_features)
-        self.hz = self.n_features / self.cz
+        self.hz = self.n_features / np.where(self.cz == 0, 1e-8, self.cz)
         ################################
 
         t = np.linspace(0, self.T_train, x.shape[0])
