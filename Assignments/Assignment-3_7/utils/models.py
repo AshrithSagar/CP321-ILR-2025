@@ -5,12 +5,14 @@ Utility for models
 
 from abc import ABC, abstractmethod
 from functools import partial
+from typing import Any
 
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from gmr import GMM
+from numpy.typing import ArrayLike, NDArray
 from scipy import optimize
 from sklearn.gaussian_process import GaussianProcessRegressor
 
@@ -701,3 +703,216 @@ class SEDS(BaseModelABC):
 
         priors, means, covars = self._from_optim_vector(res.x)
         self.gmm = GMM(self.n_mixture, priors=priors, means=means, covariances=covars)
+
+
+class DMP(BaseModelABC):
+    def __init__(self, alpha: float, n_features: int):
+        """
+        set the hyperparameters
+        """
+        # set the hyperparameters from the inputs
+        # self.alpha,self.beta,self.alpha_z,self.n_features
+        # information about the values of the parameters is given in the theory part
+
+        self.alpha = alpha
+        self.beta = self.alpha / 4.0
+        self.alpha_z = self.alpha / 3.0
+        self.n_features = n_features
+
+    def derivative(self, x: NDArray) -> NDArray:
+        """
+        difference method for calculating derivative
+
+        params:
+            x: array of shape (number of trajectories,number of timesteps,2)
+
+        returns
+            xd: array of shape (number of trajectories,number of timesteps,2)
+        """
+        T, ndims = x.shape
+        return np.vstack((np.zeros((1, ndims)), np.diff(x, axis=0) / self._dt))
+
+    def get_features(self, z: NDArray, cz: NDArray, hz: NDArray) -> NDArray:
+        """
+        Returns the PSI matrix as given in the theory part
+
+        input:
+            z : array of shape (n_steps,)
+            cz: centers of gaussian in phase domain ,array of shape(n_features,)
+            hz: scaling factor for each of the gaussian ,array of shape (n_features,)
+        returns:
+            features: array of shape (n_steps,n_features)
+        """
+        ################################
+        features = np.exp(-hz * (z - cz) ** 2)
+        features = features / np.sum(features, axis=1, keepdims=True)
+        return features
+        ################################
+
+    def fit(self, x: NDArray):
+        """
+        learn the weight vector from LeastSquares,store the weight vectors in self.w (array of shape
+
+        input
+            x: trajectory data (n_steps,2)
+        """
+
+        # set x0 (starting point) , g(goal point) in self.x0,self.g respectively.
+        # assumption is that g(goal point) is the end of the trajectory , and x0 is the start of the trajectory
+        # self.x (array of shape (n_steps,2) , self.x0 (array of shape (2,)) , self.g (array of shape (2,))
+        ################################
+        self.x0, self.g = x[0], x[-1]
+        self.x = x
+        ################################
+
+        self.T_train = 1.0
+        self._dt = self.T_train / (x.shape[0] - 1)
+
+        # get the speed and acceleration using self.derivative method and store it in self.xd,self.xdd
+        # self.xd (array of shape (n_steps,2)),self.xdd (array of shape (n_steps,2))
+        ################################
+        self.xd = self.derivative(x)
+        self.xdd = self.derivative(self.xd)
+        ################################
+
+        # calulate f_target as mentioned in the theory part and store in "f_target" variable
+        # f_target (array of shape (n_steps,2))
+        ################################
+        f_target = self._dt**2 * self.xdd - self.alpha * (
+            self.beta * (self.g - x) - self._dt * self.xd
+        )
+        ################################
+
+        # set the centers,scaling for basis functions in self.cz,self.hz variables (Note that equal spacing in time domain ,not in phase domain)
+        # information about self.hz  (scaling parameter) is given in the theory part
+        # self.cz (array of shape (n_features,)),self.hz (array of shape(n_features,))
+        ################################
+        self.cz = np.linspace(0, 1, self.n_features)
+        self.hz = self.n_features / self.cz
+        ################################
+
+        t = np.linspace(0, self.T_train, x.shape[0])
+        z = np.exp(-self.alpha_z * t)
+        # store the feature matrix in "feature" variable, use the get_features method.
+        # features (array of shape (n_steps,n_features))
+        ################################
+        features = self.get_features(z, self.cz, self.hz)
+        ################################
+
+        # get the weight vectors using leastsquares(can also use np.linalg.pinv) and store in self.w
+        # self.w (array of shape (n_features,2))
+        ################################
+        F: NDArray = f_target / (self.g - self.x0)
+        self.w = np.linalg.pinv(features) @ F
+        ################################
+
+    def predict(self, X):
+        """For backwards compatibility with BaseModelABC"""
+        raise NotImplementedError
+
+    def f_external(self, z):
+        """
+        once we have the weight vector,get the control function.
+
+        input:
+            z: float (phase variable)
+        output
+            f_ext: array of shape (2,) (for both x1,x2)
+        """
+        cz = self.cz
+        hz = self.hz
+        # here cz is the centers of the gaussians, hz are the scaling factors
+        # forcing function definition given in the theory part
+        ################################
+        features = self.get_features(z, cz, hz)
+        f_ext = features @ self.w
+        return f_ext
+        ################################
+
+    def ode_differential(self, x, t, f_ext):
+        """spring-mass dynamcis
+        used for rk4 simulation later ,f_ext is function of z
+
+        input :
+            x : array of shape (5,) where 5 dimension where x is x1,x2,x1_dot,x2_dot,z
+            t : float >=0.0 (dummy parameter , you will not be using this)
+            f_ext : function that takes z as input and returns 2 dimensional array (control forces for x1,x2)
+        output: array of shape (5,) where 5 dimension where x is x1_dot,x2_dot,x1_dot_dot,x2_dot_dot,z_dot
+        """
+        alpha, beta, alpha_z, tau = self.alpha, self.beta, self.alpha_z, self.tau
+        # Use the above hyperparameters for dynamical system
+        ################################
+        x1, x2, x1_dot, x2_dot, z = x
+        z_dot = -alpha_z * z
+        f = f_ext(z)
+        x1_dot_dot = (
+            1 / tau**2 * (alpha * (beta * (self.g[0] - x1) - tau * x1_dot) + f[0])
+        )
+        x2_dot_dot = (
+            1 / tau**2 * (alpha * (beta * (self.g[1] - x2) - tau * x2_dot) + f[1])
+        )
+        return np.array([x1_dot, x2_dot, x1_dot_dot, x2_dot_dot, z_dot])
+        ################################
+
+    def imitate(self, x0=None, g=None, tau=1.0):
+        """
+        after learning , we can change the starting position and the ending position for imitation,
+        temporal variation is done by tau
+        """
+        if x0 is not None:
+            self.x0 = x0
+        if g is not None:
+            self.g = g
+        self.tau = tau
+
+        # function to use for controller
+        f_ext = self.f_external
+
+        # dynamics function
+        f_diff = partial(self.ode_differential, f_ext=f_ext)
+
+        # inital point with zero velocity,zeros acceleration
+        x_initial = np.array([self.x0[0], self.x0[1], 0.0, 0.0, 1.0])
+
+        # rk4 simulation, till convergence
+        x_rk4, t_rk4 = self.rk4_sim(0, x_initial, f_diff)
+
+        # plotting
+        plt.plot(x_rk4[:, 0], x_rk4[:, 1], label="dmp")
+        plt.plot(self.x[:, 0], self.x[:, 1], label="original")
+        plt.legend()
+        plt.show()
+
+    def rk4_sim(self, t0, x0, f, dt=1e-3, max_iter=1e5):
+        """
+        simlution done with rk4
+
+        Returns
+        -------
+        x : shape (n_steps,5)
+        t : shape - (n_steps,)
+        """
+
+        # Calculate slopes
+        x, t = x0, t0
+        x_list, t_list = [x0], [t0]
+        i = 0
+        while np.linalg.norm(x[:2] - self.g) > 5e-1:
+            k1 = dt * f(x, t)
+            k2 = dt * f(x + k1 / 2.0, t + dt / 2.0)
+            k3 = dt * f(x + k2 / 2.0, t + dt / 2.0)
+            k4 = dt * f(x + k3, t + dt)
+
+            # Calculate new x and y
+            x = x + 1.0 / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+            t = t + dt
+            x_list.append(x)
+            t_list.append(t)
+            i += 1
+            if i >= max_iter:
+                print("MAX ITER REACHED : taking too long to converge")
+                print(f"simulated for {t} seconds")
+                return
+        print(f"Took {t} seconds to reach the goal")
+
+        return np.array(x_list), np.array(t_list)
