@@ -788,7 +788,7 @@ class DMP(BaseModelABC):
         # self.cz (array of shape (n_features,)),self.hz (array of shape(n_features,))
         ################################
         self.cz = np.linspace(0, 1, self.n_features)
-        self.hz = self.n_features / np.where(self.cz == 0, 1e-8, self.cz)
+        self.hz = self.n_features / (self.cz + 1e-8)
         ################################
 
         t = np.linspace(0, self.T_train, x.shape[0])
@@ -824,7 +824,7 @@ class DMP(BaseModelABC):
         # here cz is the centers of the gaussians, hz are the scaling factors
         # forcing function definition given in the theory part
         ################################
-        features = self.get_features(z, cz, hz)
+        features = self.get_features(np.array([z]), cz, hz)
         f_ext = features @ self.w
         return f_ext
         ################################
@@ -843,7 +843,7 @@ class DMP(BaseModelABC):
         # Use the above hyperparameters for dynamical system
         ################################
         x1, x2, x1_dot, x2_dot, z = x
-        z_dot = -alpha_z * z
+        z_dot = -alpha_z / tau * z
         f = f_ext(z)
         x1_dot_dot = (
             1 / tau**2 * (alpha * (beta * (self.g[0] - x1) - tau * x1_dot) + f[0])
@@ -851,7 +851,15 @@ class DMP(BaseModelABC):
         x2_dot_dot = (
             1 / tau**2 * (alpha * (beta * (self.g[1] - x2) - tau * x2_dot) + f[1])
         )
-        return np.array([x1_dot, x2_dot, x1_dot_dot, x2_dot_dot, z_dot])
+        return np.array(
+            [
+                x1_dot.item(),
+                x2_dot.item(),
+                x1_dot_dot.item(),
+                x2_dot_dot.item(),
+                z_dot,
+            ]
+        )
         ################################
 
     def imitate(self, x0=None, g=None, tau=1.0):
