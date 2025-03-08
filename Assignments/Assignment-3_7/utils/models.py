@@ -5,14 +5,13 @@ Utility for models
 
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any
 
 import gmr
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from gmr import GMM
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 from scipy import optimize
 from sklearn.gaussian_process import GaussianProcessRegressor
 
