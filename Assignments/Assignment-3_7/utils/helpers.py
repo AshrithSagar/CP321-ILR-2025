@@ -61,10 +61,10 @@ def derivative(x):
     difference method for calculating derivative
 
     params:
-      x: array of shape (number of trajectories,number of timesteps,2)
+        x: array of shape (number of trajectories,number of timesteps,2)
 
     returns
-      xd: array of shape (number of trajectories,number of timesteps,2)
+        xd: array of shape (number of trajectories,number of timesteps,2)
     """
     xds = []
 
@@ -84,12 +84,12 @@ def load_data(letter):
     gets the trajectories coresponding to the given letter
 
     params:
-      letter: character in ["c","j","s"]
+        letter: character in ["c","j","s"]
 
     returns:
-      data: array of shape (number of trajectories,number of timesteps,2)
-      x: array of shape(number of trajectories*number of timesteps,2)
-      xd: array of shape(number of trajectories*number of timesteps,2)
+        data: array of shape (number of trajectories,number of timesteps,2)
+        x: array of shape(number of trajectories*number of timesteps,2)
+        xd: array of shape(number of trajectories*number of timesteps,2)
 
     """
     letter2id = dict(c=2, j=6, s=24)

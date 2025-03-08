@@ -141,8 +141,8 @@ class LWR(BaseModelABC):
         """
         gaussians for weights
         params:
-          mvns: list of gaussians
-          bias: x@weight+bias
+            mvns: list of gaussians
+            bias: x@weight+bias
         """
         super().__init__(bias)
         self.mvns = mvns

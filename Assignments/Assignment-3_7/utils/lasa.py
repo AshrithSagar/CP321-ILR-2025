@@ -56,9 +56,9 @@ def load_lasa(shape_idx):
     References
     ----------
     .. [1] Khansari-Zadeh, S. M., Billard, A. (2011).
-       Learning Stable Nonlinear Dynamical Systems With Gaussian Mixture Models.
-       IEEE Transactions on Robotics, 27 (5), 943-957. DOI:
-       10.1109/TRO.2011.2159412
+        Learning Stable Nonlinear Dynamical Systems With Gaussian Mixture Models.
+        IEEE Transactions on Robotics, 27 (5), 943-957. DOI:
+        10.1109/TRO.2011.2159412
     """
     dataset_path = get_common_dataset_path()
     if not os.path.isdir(dataset_path + "lasa_data"):  # pragma: no cover
