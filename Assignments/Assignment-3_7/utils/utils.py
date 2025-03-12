@@ -445,6 +445,23 @@ def different_initial_points_seds(dataset: str, initial_points, n_mixture=10):
     )
 
 
+def different_initial_points_promp(
+    dataset: str, initial_points: list[int], n_dims=2, nweights_per_dim=20
+):
+    _, x, xd = load_data2_ax(dataset)
+    model = ProMP(n_dims=n_dims, nweights_per_dim=nweights_per_dim)
+    model.fit(x, xd)
+
+    k = len(initial_points)
+    _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
+
+    for i, start_idx in enumerate(initial_points):
+        sample_trajectories(model, x, axes[i, 0], n=100)
+        condition_on_starting_point(model, x, axes[i, 1], starting_index=start_idx)
+    plt.tight_layout()
+    plt.show()
+
+
 def _generalisation_n(
     dataset: str,
     model_key: str,
