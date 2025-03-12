@@ -951,38 +951,14 @@ class ProMP(BaseModelABC):
         # store the mean of w in self.mean_w -  array of shape(self.n_dim*self.nweights_per_dim,) (Note that this is a 1 dimensional array)
         # store the covaraince of w in self.cov_w - array of shape(self.n_dim*self.nweights_per_dim,self.n_dim*self.nweights_per_dim) (2d array)
 
-        T = np.linspace(0, 1, 1000)
-        features, features_derivative = self.get_features(T)
-        features_x = np.zeros(
-            (x.shape[0], x.shape[1], features.shape[0], self.nweights_per_dim)
-        )
-        features_xd = np.zeros(
-            (
-                xd.shape[0],
-                xd.shape[1],
-                features_derivative.shape[0],
-                self.nweights_per_dim,
-            )
-        )
-        for i in range(x.shape[0]):
-            for j in range(x.shape[1]):
-                features_x[i, j] = features
-                features_xd[i, j] = features_derivative
-        features_x = features_x.reshape(-1, self.n_dims * self.nweights_per_dim)
-        features_xd = features_xd.reshape(-1, self.n_dims * self.nweights_per_dim)
-
-        # Weights for each trajectory
-        ws = []
-        for i in range(x.shape[0]):
-            X = features_x[i].reshape(-1, self.n_dims * self.nweights_per_dim)
-            Y = features_xd[i].reshape(-1, self.n_dims * self.nweights_per_dim)
-            w = np.linalg.lstsq(X, Y, rcond=None)[0]
-            ws.append(w)
-
-        self.ws = ws
-        ws = np.vstack(ws)
-        self.mean_w = np.mean(ws, axis=0)
-        self.cov_w = np.cov(ws.T)
+        num_trajectories, n_steps, _ = x.shape
+        T = np.linspace(0, 1, n_steps)
+        Phi, _ = self.get_features(T)  # Get basis features
+        Phi = self._nd_block_diagonal(Phi, self.n_dims)  # Expand to block-diagonal
+        # Solve for weights: w = (Phi^T Phi)^-1 Phi^T x
+        w_all = np.linalg.pinv(Phi.T @ Phi) @ Phi.T @ x.reshape(num_trajectories, -1).T
+        self.mean_w = np.mean(w_all, axis=1)
+        self.cov_w = np.cov(w_all, rowvar=True)
 
     def sample_trajectories(self, n_sample, mean_w=None, cov_w=None):
         """
@@ -1001,17 +977,13 @@ class ProMP(BaseModelABC):
         # use this T for getting features as we trained assuming this T
         T = np.linspace(0, 1, 1000)
 
-        features, _ = self.get_features(T)
-        x_sample = []
-        for _ in range(n_sample):
-            if mean_w is None:
-                mean_w = self.mean_w
-            if cov_w is None:
-                cov_w = self.cov_w
-            w = np.random.multivariate_normal(mean_w, cov_w)
-            x = np.dot(features, w).reshape(-1, self.n_dims)
-            x_sample.append(x)
-        return np.array(x_sample)
+        mean_w = self.mean_w if mean_w is None else mean_w
+        cov_w = self.cov_w if cov_w is None else cov_w
+        sampled_w = np.random.multivariate_normal(mean_w, cov_w, size=n_sample)
+        Phi, _ = self.get_features(T)
+        Phi = self._nd_block_diagonal(Phi, self.n_dims)
+        x_sample = (Phi @ sampled_w.T).T.reshape(n_sample, 1000, self.n_dims)
+        return x_sample
 
     def conditioning_on_xt(self, xt, t, cov=0.0):
         """

@@ -63,7 +63,7 @@ def streamplot_ax(ax, f, x_axis=(0, 100), y_axis=(0, 100), n=1000, width=1, **kw
     ax.streamplot(X, Y, U, V, linewidth=lw, **kwargs)
 
 
-def load_data_ax(letter, show_plot=False, ax=None):
+def load_data_ax(letter: str, show_plot=False, ax: plt.Axes = None):
     """
     gets the trajectories coresponding to the given letter
 
@@ -85,12 +85,41 @@ def load_data_ax(letter, show_plot=False, ax=None):
     if show_plot:
         if ax is None:
             plt.figure(figsize=(10, 5))
-        else:
-            ax = ax
         plot_curves_ax(ax, x)
     data = x
     x = x.reshape(-1, 2)
     xd = xd.reshape(-1, 2)
+    plt.show()
+    return data, x, xd
+
+
+def load_data2_ax(letter: str, show_plot=False, ax: plt.Axes = None):
+    """
+    gets the trajectories coresponding to the given letter
+
+    params:
+        letter: character in ["c","j","s"]
+
+    returns:
+        data: array of shape (number of trajectories,number of timesteps,2)
+        x: array of shape(number of trajectories*number of timesteps,2)
+        xd: array of shape(number of trajectories*number of timesteps,2)
+
+    """
+    letter2id = dict(c=2, j=6, s=24)
+    assert letter.lower() in letter2id
+    _, x, _, _, _, _ = load_lasa(letter2id[letter.lower()])
+    xds = []
+    for i in range(x.shape[0]):
+        dt = 1 / (x[i].shape[0] - 1)
+        xd = np.vstack((np.zeros((1, x[i].shape[1])), np.diff(x[i], axis=0) / dt))
+        xds.append(xd)
+    xd = np.stack(xds)
+    if show_plot:
+        if ax is None:
+            plt.figure(figsize=(10, 5))
+        plot_curves_ax(ax, x)
+    data = x
     plt.show()
     return data, x, xd
 
@@ -123,7 +152,7 @@ def init_gaussians_ax(y, n=3, show_plot=False, ax=None):
     return mvns
 
 
-def fit_least_squares(dataset, lam=1e-2, bias=False):
+def fit_least_squares(dataset: str, lam=1e-2, bias=False):
     # load data
     data, x, xd = load_data_ax(dataset)
 
@@ -196,7 +225,7 @@ def _model_imitate(data, x, xd, model, num_gaussians=None, starting=0, t_end=10,
     plt.show()
 
 
-def fit_lwr(dataset, n=10, bias=False):
+def fit_lwr(dataset: str, n=10, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
     model = LWR(mvns, bias=bias)
@@ -204,7 +233,7 @@ def fit_lwr(dataset, n=10, bias=False):
     _model_imitate(data, x, xd, model, num_gaussians=n, starting=6)
 
 
-def fit_rbfn(dataset, n=10, bias=False):
+def fit_rbfn(dataset: str, n=10, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
     model = RBFN(mvns, bias=bias)
@@ -212,14 +241,14 @@ def fit_rbfn(dataset, n=10, bias=False):
     _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
 
 
-def fit_gmr(dataset, n=10):
+def fit_gmr(dataset: str, n=10):
     data, x, xd = load_data_ax(dataset)
     model = GMR(n_mixture=n)
     model.fit(x, xd, data)
     _model_imitate(data, x, xd, model, num_gaussians=n, starting=0)
 
 
-def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_prior_posterior=False):
+def fit_gpr(dataset: str, kernel, alpha=1, num_traj=1, show_prior_posterior=False):
     def plot_vector_field(data, x, xd, model, n, ax=None, title=None):
         """
         n: number of trajectories selected for training
@@ -249,7 +278,7 @@ def fit_gpr(dataset, kernel, alpha=1, num_traj=1, show_prior_posterior=False):
     _model_imitate(data, x, xd, model, starting=num_traj - 1, t_end=5, n=100)
 
 
-def fit_seds(dataset, n_mixture=10):
+def fit_seds(dataset: str, n_mixture=10):
     data, x, xd = load_data_ax(dataset)
     attractor = data[0][-1]
     model = SEDS(attractor, n_mixture=n_mixture)
@@ -257,12 +286,13 @@ def fit_seds(dataset, n_mixture=10):
     _model_imitate(data, x, xd, model, t_end=5, n=100)
 
 
-def fit_promp(dataset, n_dims=2, nweights_per_dim=20):
-    _, x, xd = load_data_ax(dataset)
+def fit_promp(dataset: str, n_dims=2, nweights_per_dim=20):
+    _, x, xd = load_data2_ax(dataset)
     model = ProMP(n_dims=n_dims, nweights_per_dim=nweights_per_dim)
     model.fit(x, xd)
-    ax, _ = plt.subplots(figsize=(10, 5))
-    sample_trajectories(model, x, ax, n=100)
+    _, axes = plt.subplots(1, 2, figsize=(10, 5))
+    sample_trajectories(model, x, axes[0], n=100)
+    condition_on_starting_point(model, x, axes[1], starting_index=0)
 
 
 def select_trajectories(data, x, xd, n):
@@ -277,13 +307,14 @@ def select_trajectories(data, x, xd, n):
 
 
 def sample_trajectories(model: ProMP, x, ax, n=100):
-    """Samples different trajectories"""
+    """Sample different trajectories"""
     x_lim = [np.min(x[:, :, 0]) - 10, np.max(x[:, :, 0]) + 10]
     y_lim = [np.min(x[:, :, 1]) - 10, np.max(x[:, :, 1]) + 10]
     plt.xlim(x_lim)
     plt.ylim(y_lim)
     x_sample = model.sample_trajectories(n)
     plot_curves_ax(ax, x_sample, alpha=0.2)
+    ax.set_title(f"Sampled trajectories ({n=})")
 
 
 def condition_on_starting_point(model: ProMP, x, ax, starting_index=0):
@@ -295,6 +326,7 @@ def condition_on_starting_point(model: ProMP, x, ax, starting_index=0):
     plt.xlim(x_lim)
     plt.ylim(y_lim)
     plot_curves_ax(ax, x_sample, alpha=0.2)
+    ax.set_title(f"Conditioned on starting point {starting_index}")
 
 
 def _get_model(model_key, model_params):
@@ -327,7 +359,7 @@ def _get_model(model_key, model_params):
 
 
 def _different_initial_points(
-    dataset, model: BaseModelABC, initial_points, streamplot_method="predict"
+    dataset: str, model: BaseModelABC, initial_points, streamplot_method="predict"
 ):
     """
     Generates stacked plots for different starting points
@@ -362,7 +394,7 @@ def _different_initial_points(
     plt.show()
 
 
-def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
+def different_initial_points_lwr(dataset: str, initial_points, n=4, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
     model = LWR(mvns, bias=bias)
@@ -372,7 +404,7 @@ def different_initial_points_lwr(dataset, initial_points, n=4, bias=False):
     )
 
 
-def different_initial_points_rbfn(dataset, initial_points, n=4, bias=False):
+def different_initial_points_rbfn(dataset: str, initial_points, n=4, bias=False):
     data, x, xd = load_data_ax(dataset)
     mvns = init_gaussians_ax(data, n)
     model = RBFN(mvns, bias=bias)
@@ -382,7 +414,7 @@ def different_initial_points_rbfn(dataset, initial_points, n=4, bias=False):
     )
 
 
-def different_initial_points_gmr(dataset, initial_points, n=10):
+def different_initial_points_gmr(dataset: str, initial_points, n=10):
     data, x, xd = load_data_ax(dataset)
     model = GMR(n_mixture=n)
     model.fit(x, xd, data)
@@ -391,7 +423,9 @@ def different_initial_points_gmr(dataset, initial_points, n=10):
     )
 
 
-def different_initial_points_gpr(dataset, kernel, initial_points, alpha=1, num_traj=1):
+def different_initial_points_gpr(
+    dataset: str, kernel, initial_points, alpha=1, num_traj=1
+):
     data, x, xd = load_data_ax(dataset)
     model = GPR(kernel=kernel, alpha=alpha)
     x_new, xd_new = select_trajectories(data, x, xd, num_traj)
@@ -401,7 +435,7 @@ def different_initial_points_gpr(dataset, kernel, initial_points, alpha=1, num_t
     )
 
 
-def different_initial_points_seds(dataset, initial_points, n_mixture=10):
+def different_initial_points_seds(dataset: str, initial_points, n_mixture=10):
     data, x, xd = load_data_ax(dataset)
     attractor = data[0][-1]
     model = SEDS(attractor, n_mixture=n_mixture)
@@ -527,7 +561,7 @@ def _generalisation_kernel(
     plt.show()
 
 
-def generalisation_lwr(dataset, n_values, bias=False):
+def generalisation_lwr(dataset: str, n_values, bias=False):
     _generalisation_n(
         dataset=dataset,
         model_key="lwr",
@@ -536,7 +570,7 @@ def generalisation_lwr(dataset, n_values, bias=False):
     )
 
 
-def generalisation_rbfn(dataset, n_values, bias=False):
+def generalisation_rbfn(dataset: str, n_values, bias=False):
     _generalisation_n(
         dataset=dataset,
         model_key="rbfn",
@@ -545,7 +579,7 @@ def generalisation_rbfn(dataset, n_values, bias=False):
     )
 
 
-def generalisation_gmr(dataset, n_values):
+def generalisation_gmr(dataset: str, n_values):
     _generalisation_n(
         dataset=dataset,
         model_key="gmr",

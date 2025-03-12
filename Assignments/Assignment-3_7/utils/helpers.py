@@ -104,6 +104,35 @@ def load_data(letter):
     return data, x, xd
 
 
+# loading the data and plotting
+def load_data2(letter):
+    """
+    gets the trajectories coresponding to the given letter
+
+    params:
+        letter: character in ["c","j","s"]
+
+    returns:
+        data: array of shape (number of trajectories,number of timesteps,2)
+        x: array of shape(number of trajectories*number of timesteps,2)
+        xd: array of shape(number of trajectories*number of timesteps,2)
+
+    """
+    letter2id = dict(c=2, j=6, s=24)
+    assert letter.lower() in letter2id
+    _, x, _, _, _, _ = load_lasa(letter2id[letter.lower()])
+    xds = []
+    for i in range(x.shape[0]):
+        dt = 1 / (x[i].shape[0] - 1)
+        xd = np.vstack((np.zeros((1, x[i].shape[1])), np.diff(x[i], axis=0) / dt))
+        xds.append(xd)
+    xd = np.stack(xds)
+    plot_curves(x)
+    data = x
+    plt.show()
+    return data, x, xd
+
+
 def init_gaussians(y, n=3):
     """
     initializes the gaussian based on time fragmentaion
