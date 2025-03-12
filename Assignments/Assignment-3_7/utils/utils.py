@@ -11,7 +11,7 @@ import numpy as np
 
 from .helpers import derivative
 from .lasa import load_lasa
-from .models import GMR, GPR, LWR, RBFN, SEDS, BaseModelABC, LeastSquares
+from .models import GMR, GPR, LWR, RBFN, SEDS, BaseModelABC, LeastSquares, ProMP
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -255,6 +255,12 @@ def fit_seds(dataset, n_mixture=10):
     model = SEDS(attractor, n_mixture=n_mixture)
     model.fit(x, xd)
     _model_imitate(data, x, xd, model, t_end=5, n=100)
+
+
+def fit_promp(dataset, n_dims=2, nweights_per_dim=20):
+    data, x, xd = load_data_ax(dataset)
+    model = ProMP(n_dims=n_dims, nweights_per_dim=nweights_per_dim)
+    model.fit(x, xd)
 
 
 def select_trajectories(data, x, xd, n):

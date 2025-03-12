@@ -917,3 +917,125 @@ class DMP(BaseModelABC):
         print(f"Took {t} seconds to reach the goal")
 
         return np.array(x_list), np.array(t_list)
+
+
+class ProMP(BaseModelABC):
+    def __init__(self, n_dims=2, nweights_per_dim=20):
+
+        self.n_dims = n_dims
+        self.nweights_per_dim = nweights_per_dim
+
+    def get_features(self, T, overlap=0.7):
+        """
+        gaussian feature vector for time ,and its derivative
+
+        params:
+            T:1d array , query time for features
+            overlap: float(0.0-1.0) , heuristic for overlap between gaussians
+        returns:
+            rbfs.T : array(T x dim),feature vectors
+            rbfs_derivative.T : array(T x dim), derivative of feature vectors
+        """
+        assert T.ndim == 1
+        assert np.max(T) <= 1.0 and np.min(T) >= 0.0
+        h = -1.0 / (8.0 * self.nweights_per_dim**2 * np.log(overlap))
+        centers = np.linspace(0, 1, self.nweights_per_dim)
+        rbfs = np.exp(-((T[None, ...] - centers[..., None]) ** 2) / (2.0 * h))
+        rbfs_sum_per_step = rbfs.sum(axis=0)
+        rbfs_deriv = (centers[..., None] - T[None, ...]) / h
+        rbfs_deriv *= rbfs
+        rbfs_deriv_sum_per_step = rbfs_deriv.sum(axis=0)
+        rbfs_deriv = (
+            rbfs_deriv * rbfs_sum_per_step - rbfs * rbfs_deriv_sum_per_step
+        ) / (rbfs_sum_per_step**2)
+        rbfs /= rbfs_sum_per_step
+        return rbfs.T, rbfs_deriv.T
+
+    def fit(self, x, xd):
+        """
+        fits w for each trajectory and estimates mean,covariance of w
+        use the get_features method for feature calulation
+
+        params:
+            x:array of shape - (number of trajectories,n_steps,self.n_dims)
+        """
+        # store the mean of w in self.mean_w -  array of shape(self.n_dim*self.nweights_per_dim,) (Note that this is a 1 dimensional array)
+        # store the covaraince of w in self.cov_w - array of shape(self.n_dim*self.nweights_per_dim,self.n_dim*self.nweights_per_dim) (2d array)
+
+    def sample_trajectories(self, n_sample, mean_w=None, cov_w=None):
+        """
+        samples trajectories given mean_w and cov_w , if not given uses the default (self.mean_w,self.cov_w)
+        w ~ Normal(mean_w,cov_w)
+        x_sample = mean of p( x / w )
+
+        params:
+            n_sample : int , number of trajectories to sample
+            mean_w : array of shape - (self.nweights_per_dim*self.n_dims,)
+            cov_w : array of shape - (self.nweights_per_dim*self.n_dims,self.nweights_per_dim*self.n_dims)
+        returns:
+            x_sample:array of shape - (n_sample,1000,self.n_dims)
+
+        """
+        # use this T for getting features as we trained assuming this T
+        T = np.linspace(0, 1, 1000)
+
+    def conditioning_on_xt(self, xt, t, cov=0.0):
+        """
+        changes the mean,covariance of the w based by conditioning on  x(t)
+
+        params:
+            xt : array of shape (self.n_dims,)
+            t : 0.0 or 1.0 => 0.0 corresponds to starting point, 1.0 corresponds to the ending point
+
+        returns:
+            new_mean : array of shape (self.nweights_per_dim*self.n_dims,)
+            new_cov : array of shape (self.nweights_per_dim*self.n_dims,self.nweights_per_dim*self.n_dims)
+        """
+
+        assert xt.ndim == 1
+        assert t <= 1.0 and t >= 0
+
+        y = np.zeros(2 * len(xt))
+        y[::2] = xt
+
+        phi = np.vstack(self.get_features(np.array([t])))
+        phi = self._nd_block_diagonal(phi, self.n_dims)
+        phi = phi.T
+        common_term = (
+            self.cov_w
+            @ phi
+            @ np.linalg.pinv(cov * np.eye(len(phi.T)) + phi.T @ self.cov_w @ phi)
+        )
+        new_mean_w = self.mean_w + common_term @ (y - phi.T @ self.mean_w)
+        new_cov_w = self.cov_w - common_term @ phi.T @ self.cov_w
+        return new_mean_w, new_cov_w
+
+    def _nd_block_diagonal(self, partial_1d, n_dims):
+        """Replicates matrix n_dims times to form a block-diagonal matrix.
+
+        We also accept matrices of rectangular shape. In this case the result is
+        not officially called a block-diagonal matrix anymore.
+
+        Parameters
+        ----------
+        partial_1d : array, shape (n_block_rows, n_block_cols)
+            Matrix that should be replicated.
+
+        n_dims : int
+            Number of times that the matrix has to be replicated.
+
+        Returns
+        -------
+        full_nd : array, shape (n_block_rows * n_dims, n_block_cols * n_dims)
+            Block-diagonal matrix with n_dims replications of the initial matrix.
+        """
+        assert partial_1d.ndim == 2
+        n_block_rows, n_block_cols = partial_1d.shape
+
+        full_nd = np.zeros((n_block_rows * n_dims, n_block_cols * n_dims))
+        for j in range(n_dims):
+            full_nd[
+                n_block_rows * j : n_block_rows * (j + 1),
+                n_block_cols * j : n_block_cols * (j + 1),
+            ] = partial_1d
+        return full_nd
