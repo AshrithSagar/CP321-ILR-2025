@@ -630,3 +630,19 @@ def generalisation_seds(dataset: str, n_values: list[int]):
         n_values=n_values,
         model_params={"attractor": data[0][-1]},
     )
+
+
+def generalisation_promp(dataset: str, nweights_per_dim_values: list[int], n_dims=2):
+    _, x, xd = load_data2_ax(dataset)
+
+    k = len(nweights_per_dim_values)
+    _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
+
+    for i, nweights_per_dim in enumerate(nweights_per_dim_values):
+        model = ProMP(n_dims=n_dims, nweights_per_dim=nweights_per_dim)
+        model.fit(x, xd)
+        sample_trajectories(model, x, axes[i, 0], n=100)
+        condition_on_starting_point(model, x, axes[i, 1], starting_index=0)
+        axes[i, 0].set_ylabel(f"{nweights_per_dim=}")
+    plt.tight_layout()
+    plt.show()
