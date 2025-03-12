@@ -951,6 +951,39 @@ class ProMP(BaseModelABC):
         # store the mean of w in self.mean_w -  array of shape(self.n_dim*self.nweights_per_dim,) (Note that this is a 1 dimensional array)
         # store the covaraince of w in self.cov_w - array of shape(self.n_dim*self.nweights_per_dim,self.n_dim*self.nweights_per_dim) (2d array)
 
+        T = np.linspace(0, 1, 1000)
+        features, features_derivative = self.get_features(T)
+        features_x = np.zeros(
+            (x.shape[0], x.shape[1], features.shape[0], self.nweights_per_dim)
+        )
+        features_xd = np.zeros(
+            (
+                xd.shape[0],
+                xd.shape[1],
+                features_derivative.shape[0],
+                self.nweights_per_dim,
+            )
+        )
+        for i in range(x.shape[0]):
+            for j in range(x.shape[1]):
+                features_x[i, j] = features
+                features_xd[i, j] = features_derivative
+        features_x = features_x.reshape(-1, self.n_dims * self.nweights_per_dim)
+        features_xd = features_xd.reshape(-1, self.n_dims * self.nweights_per_dim)
+
+        # Weights for each trajectory
+        ws = []
+        for i in range(x.shape[0]):
+            X = features_x[i].reshape(-1, self.n_dims * self.nweights_per_dim)
+            Y = features_xd[i].reshape(-1, self.n_dims * self.nweights_per_dim)
+            w = np.linalg.lstsq(X, Y, rcond=None)[0]
+            ws.append(w)
+
+        self.ws = ws
+        ws = np.vstack(ws)
+        self.mean_w = np.mean(ws, axis=0)
+        self.cov_w = np.cov(ws.T)
+
     def sample_trajectories(self, n_sample, mean_w=None, cov_w=None):
         """
         samples trajectories given mean_w and cov_w , if not given uses the default (self.mean_w,self.cov_w)
@@ -967,6 +1000,18 @@ class ProMP(BaseModelABC):
         """
         # use this T for getting features as we trained assuming this T
         T = np.linspace(0, 1, 1000)
+
+        features, _ = self.get_features(T)
+        x_sample = []
+        for _ in range(n_sample):
+            if mean_w is None:
+                mean_w = self.mean_w
+            if cov_w is None:
+                cov_w = self.cov_w
+            w = np.random.multivariate_normal(mean_w, cov_w)
+            x = np.dot(features, w).reshape(-1, self.n_dims)
+            x_sample.append(x)
+        return np.array(x_sample)
 
     def conditioning_on_xt(self, xt, t, cov=0.0):
         """

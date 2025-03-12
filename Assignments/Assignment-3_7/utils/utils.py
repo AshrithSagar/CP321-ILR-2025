@@ -258,9 +258,11 @@ def fit_seds(dataset, n_mixture=10):
 
 
 def fit_promp(dataset, n_dims=2, nweights_per_dim=20):
-    data, x, xd = load_data_ax(dataset)
+    _, x, xd = load_data_ax(dataset)
     model = ProMP(n_dims=n_dims, nweights_per_dim=nweights_per_dim)
     model.fit(x, xd)
+    ax, _ = plt.subplots(figsize=(10, 5))
+    sample_trajectories(model, x, ax, n=100)
 
 
 def select_trajectories(data, x, xd, n):
@@ -272,6 +274,27 @@ def select_trajectories(data, x, xd, n):
     xd_new = xd.reshape(*data.shape)
     xd_new = xd_new[:n].reshape(-1, 2)
     return x_new, xd_new
+
+
+def sample_trajectories(model: ProMP, x, ax, n=100):
+    """Samples different trajectories"""
+    x_lim = [np.min(x[:, :, 0]) - 10, np.max(x[:, :, 0]) + 10]
+    y_lim = [np.min(x[:, :, 1]) - 10, np.max(x[:, :, 1]) + 10]
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    x_sample = model.sample_trajectories(n)
+    plot_curves_ax(ax, x_sample, alpha=0.2)
+
+
+def condition_on_starting_point(model: ProMP, x, ax, starting_index=0):
+    x_lim = [np.min(x[:, :, 0]) - 10, np.max(x[:, :, 0]) + 10]
+    y_lim = [np.min(x[:, :, 1]) - 10, np.max(x[:, :, 1]) + 10]
+    x0 = x[starting_index][-1]
+    new_mean, new_cov = model.conditioning_on_xt(x0, 1.0, 0.0)
+    x_sample = model.sample_trajectories(100, new_mean, new_cov)
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    plot_curves_ax(ax, x_sample, alpha=0.2)
 
 
 def _get_model(model_key, model_params):
