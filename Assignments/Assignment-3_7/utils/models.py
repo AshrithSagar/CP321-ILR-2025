@@ -93,13 +93,6 @@ class BaseModelABC(ABC):
         """
         pass
 
-    @abstractmethod
-    def predict(self, X):
-        """
-        Predict using the fitted model.
-        """
-        pass
-
 
 class LeastSquares(BaseModelABC):
     def __init__(self, lam=1e-2, bias=False):
@@ -805,10 +798,6 @@ class DMP(BaseModelABC):
         # self.w = np.linalg.pinv(features) @ F
         self.w = np.linalg.lstsq(features * z[:, None], F, rcond=None)[0]
         ################################
-
-    def predict(self, X):
-        """For backwards compatibility with BaseModelABC"""
-        raise NotImplementedError
 
     def f_external(self, z):
         """
