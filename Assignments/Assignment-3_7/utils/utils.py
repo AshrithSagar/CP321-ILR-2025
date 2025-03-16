@@ -491,21 +491,45 @@ def different_initial_points_tpgmm(
     As: np.ndarray,
     Bs: np.ndarray,
     n_mixture: int,
-    initial_points: list[int],
+    y_offsets: list[int],
+    trajectory_index: int = 0,
+):
+    mp = TPGMM(As, Bs, n_mixture)
+    mp.fit(Data)
+
+    k = len(y_offsets)
+    _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
+
+    for i, y_offset in enumerate(y_offsets):
+        A_new, B_new = As[:, trajectory_index].copy(), Bs[:, trajectory_index].copy()
+        B_new[0] = B_new[0] + np.array([0, y_offset, 0])
+        B_new[1] = B_new[1] + np.array([0, y_offset, 0])
+        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i])
+        axes[i, 0].set_ylabel(f"{y_offset=}")
+    plt.tight_layout()
+    plt.show()
+
+
+def different_trajectories_tpgmm(
+    Data: np.ndarray,
+    As: np.ndarray,
+    Bs: np.ndarray,
+    n_mixture: int,
+    trajectory_indices: list[int],
     y_offset: int = 0,
 ):
     mp = TPGMM(As, Bs, n_mixture)
     mp.fit(Data)
 
-    k = len(initial_points)
+    k = len(trajectory_indices)
     _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
 
-    for i, traj in enumerate(initial_points):
-        A_new, B_new = As[:, traj].copy(), Bs[:, traj].copy()
+    for i, trajectory_index in enumerate(trajectory_indices):
+        A_new, B_new = As[:, trajectory_index].copy(), Bs[:, trajectory_index].copy()
         B_new[0] = B_new[0] + np.array([0, y_offset, 0])
         B_new[1] = B_new[1] + np.array([0, y_offset, 0])
         mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i])
-        axes[i, 0].set_ylabel(f"trajectory={traj}")
+        axes[i, 0].set_ylabel(f"{trajectory_index=}")
     plt.tight_layout()
     plt.show()
 
