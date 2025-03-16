@@ -3,6 +3,7 @@ models.py
 Utility for models
 """
 
+import itertools
 from abc import ABC, abstractmethod
 from functools import partial
 
@@ -10,10 +11,11 @@ import gmr
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from gmr import GMM
+from gmr import GMM, MVN, plot_error_ellipses
 from numpy.typing import NDArray
 from scipy import optimize
 from sklearn.gaussian_process import GaussianProcessRegressor
+from utils.helpers import plot_curves3
 
 from .helpers import plot_curves
 
@@ -1045,3 +1047,289 @@ class ProMP(BaseModelABC):
                 n_block_cols * j : n_block_cols * (j + 1),
             ] = partial_1d
         return full_nd
+
+
+# not moving frames
+class TPGMM(BaseModelABC):
+    def __init__(self, As, Bs, n_mixture):
+        """
+        params:
+            As : array of shape(n_frames,n_trajectories,3,3)
+            Bs : array of shape(n_frames,n_trajectories,3)
+            n_mixture: number of gaussians in gaussian mixture
+        """
+        self.As = As
+        self.Bs = Bs
+        self.n_frames = len(As)
+        self.n_feature = As.shape[-1]
+        self.n_mixture = n_mixture
+        self._reg_factor = 1e-15
+        self._reg_cov = np.eye(self.n_feature) * self._reg_factor
+
+    def fit(self, data, max_iter=200, threshold=1e-5):
+        """
+        step-1 : Transform the data in different frames
+        step-2 : initialize the gmm parameters
+
+        Does EM on transformed data and stores the parameters of the model
+        input is expected to be aligned with time
+
+        params:
+            X: array of shape (n_trajectories,n_steps,3)
+        """
+
+        # store the trajectory as viewed from each frame in variable("X")
+        # X - shape (n_frames,n_trajectories,n_steps,3)
+        # hint:X[0]-(n_trajectories,n_steps,3) is the data viewed w.r.t frame 1, X[1] is the the data viewd w.r.t frame 2
+        ################################
+
+        # initialize means,covars using  self.time_bases_init() method , store them in self.means,self.covars respectively
+        # self.priors as uniform (equal probability)
+        ################################
+
+        # reshape X to (n_frames,n_points,3)
+        X = X.reshape(self.n_frames, -1, self.n_feature)
+
+        probabilities = self.gauss_probs(X)
+        log_likelihood = self._log_likelihood(probabilities)
+
+        epoch_idx = 0
+        while True:
+            # Expectation step (use self.expectation_step method)
+            ################################
+
+            # Maximization step (use self.maximization_step method)
+            ################################
+
+            self.maximization_step(X, h)
+
+            # update probabilities and log likelihood
+            probabilities = self.gauss_probs(X)
+            updated_log_likelihood = self._log_likelihood(probabilities)
+
+            # Logging
+            difference = updated_log_likelihood - log_likelihood
+            if np.isnan(difference):
+                raise ValueError("improvement is nan")
+
+            print(
+                f"Epoch:{epoch_idx} Log likelihood: {updated_log_likelihood} improvement {difference}"
+            )
+            epoch_idx += 1
+
+            # break if threshold is reached or max_iter reached
+            if difference < threshold or epoch_idx >= max_iter:
+                if epoch_idx >= max_iter:
+                    print("max_iter reached")
+                else:
+                    print("threshold satisfied")
+                break
+
+            log_likelihood = updated_log_likelihood
+
+    def expectation_step(self, probabilities):
+        """
+        input:
+            probabilities :  (num_frames, n_components, num_points)
+        returns:
+            h : contribution of each gauusian to a point - array of shape (n_mixture,n_points)
+        """
+
+        return self._update_h(probabilities)
+
+    def maximization_step(self, X, h):
+        """
+        updates the priors, means, covariances
+        input:
+            h : contribution of each gauusian to a point - array of shape (n_mixture,n_points)
+            X (ndarray): shape: (num_frames, num_points, num_features)
+
+        """
+        self._update_priors(h)
+        self._update_means(X, h)
+        self._update_covars(X, h)
+
+    def time_based_init(self, X):
+        """
+        initializes params by slicing the data in self.n_mixture parts in time
+
+        input:
+            X : shape of (n_frames,n_traj,n_steps,n_features)
+        returns:
+            means: shape -  (n_frames,n_mixture,3)
+            covars: shape - (n_frames,n_mixture,3,3)
+        """
+        split_size = X.shape[2] // self.n_mixture
+        X = np.array(
+            [
+                X[:, :, i * split_size : (i + 1) * split_size, :].reshape(
+                    X.shape[0], -1, X.shape[-1]
+                )
+                for i in range(self.n_mixture)
+            ]
+        )
+        means = np.array([np.mean(x, axis=1) for x in X])
+        means = means.transpose((1, 0, 2))
+
+        covars = []
+        for x in X:
+            covars.append(np.array([np.cov(x_, rowvar=False) for x_ in x]))
+        covars = np.array(covars)
+        covars = covars.transpose((1, 0, 2, 3))
+
+        return means, covars
+
+    def gauss_probs(self, X):
+        """calculate the gaussian probability for a given data set.
+
+        Variable explanation:
+        D ... number of features
+
+        Args:
+            X (ndarray): data with shape: (num_frames, num_points, num_features)
+
+        Returns:
+            ndarray: probability shape (num_frames, n_components, num_points)
+        """
+        num_frames, num_points, num_features = X.shape
+        probs = np.empty((num_frames, self.n_mixture, num_points))
+
+        for frame_idx, component_idx in itertools.product(
+            range(num_frames), range(self.n_mixture)
+        ):
+            frame_data = X[frame_idx]
+            cluster_mean = self.means[frame_idx, component_idx]
+            cluster_cov = self.covars[frame_idx, component_idx]
+            probs[frame_idx, component_idx] = MVN(
+                cluster_mean, cluster_cov
+            ).to_probability_density(frame_data)
+        return probs
+
+    def _update_h(self, probabilities):
+        """update h as per equations given in the paper
+
+        Args:
+            data (ndarray): shape: (num_frames, num_points, num_features)
+            probabilities (ndarray): shape (num_frames, n_components, num_points)
+        Returns:
+            ndarray: h-parameter. shape: (n_components, num_points(7000))
+        """
+        ################################
+
+    def _update_priors(self, h):
+        """update priors in self.priors , doesn't return anything
+
+        Args:
+            h (ndarray): shape: (n_components, n_points(7000))
+        """
+        ################################
+
+    def _update_means(self, X, h):
+        """updates the mean parameter (self.mean), doesn't return anything
+        Args:
+            X (ndarray): shape: (num_frames, num_points, num_features)
+            h (ndarray): shape: (n_components, num_points)
+        """
+        ################################
+
+    def _update_covars(self, X, h):
+        """updates the covariance parameters
+        Args:
+            X (ndarray): shape: (num_frames, num_points, num_features)
+            h (ndarray): shape: (n_components, num_points)
+        """
+        num_frames = X.shape[0]
+        cov = np.empty_like(self.covars)
+        for frame_idx, component_idx in itertools.product(
+            range(num_frames), range(self.n_mixture)
+        ):
+            frame_data = X[frame_idx]
+            component_mean = self.means[frame_idx, component_idx]
+            component_h = h[component_idx]
+
+            centered = frame_data - component_mean
+            # shape: (num_points, num_features, num_features)
+            mat_aggregation = np.einsum("ij,ik->ijk", centered, centered)
+            # swap dimensions to: (num_features, num_features, num_points)
+            mat_aggregation = mat_aggregation.transpose(1, 2, 0)
+            # weighted sum and division by h. shape: (num_features, num_features)
+            cov[frame_idx, component_idx] = (
+                mat_aggregation @ component_h
+            ) / component_h.sum()
+
+        # shape: (num_frames, num_components,num_features, num_features)
+        self.covars = cov + self._reg_cov
+
+    def _log_likelihood(self, probabilities):
+        """calculates the log likelihood of given probabilities
+
+        Args:
+            probabilities (ndarray): shape: (num_frames, n_components, num_points)
+
+        Returns:
+            float: log likelihood
+        """
+        probabilities = np.prod(probabilities, axis=0)
+        # reshape to: (num_points, n_components)
+        probabilities = probabilities.T
+        weighted_sum = probabilities @ self.priors  # shape (num_points)
+        return np.sum(np.log(weighted_sum)).item()
+
+    def plot_gaussians_wrt_frames(self, Data, As, Bs):
+        """
+        Plots Projected Gaussians,Product of Gaussians on to Main Frame, and the mean trajectory for the given Parameters
+
+        Params:
+            Data: array of shape (n_traj,n_steps,n_features)
+            As:array of shape (n_frames,n_features,n_features)
+            Bs:array of shape (n_frames,n_features)
+        """
+
+        # projected means and covariances
+        projected_means = (As[:, None] @ (self.means[..., None])) + (
+            Bs[:, None, ..., None]
+        )
+        projected_means = projected_means[..., 0]
+        projected_covars = (
+            As[:, None] @ self.covars @ np.transpose(As[:, None], (0, 1, 3, 2))
+        )
+
+        # Product of Gaussians
+        inv_projected_covars = np.linalg.inv(projected_covars)
+        final_covars = np.linalg.inv(np.sum(inv_projected_covars, axis=0))
+        final_means = (
+            final_covars
+            @ np.sum(inv_projected_covars @ (projected_means[..., None]), 0)
+        )[..., 0]
+
+        # plotting projected Gaussians
+        splot = plt.subplot(111)
+        plot_curves3(Data[:, :, 1:], alpha=0.2)
+        for i in range(self.n_frames):
+            gmm = GMM(
+                len(self.priors),
+                self.priors,
+                projected_means[i][:, 1:],
+                projected_covars[i][:, 1:, 1:],
+            )
+            plot_error_ellipses(splot, gmm, factors=[1])
+
+        plt.title(f"With respect to Main Reference,Projected Gaussians")
+        plt.show()
+
+        # plotting product of Gaussians
+        splot = plt.subplot(111)
+        gmm = GMM(
+            len(self.priors), self.priors, final_means[:, 1:], final_covars[:, 1:, 1:]
+        )
+        plot_curves3(Data[:, :, 1:], alpha=0.1)
+        plot_error_ellipses(splot, gmm, factors=[1])
+
+        # mean trajectory with the product of Gaussians
+        gmm = GMM(len(self.priors), self.priors, final_means, final_covars)
+        time = np.linspace(0, 2, 1000)
+        new_traj = gmm.predict([0], time[..., None])
+        plot_curves3(new_traj[None])
+
+        plt.title(f"With respect to Main Reference,Product of Gaussians")
+        plt.show()
