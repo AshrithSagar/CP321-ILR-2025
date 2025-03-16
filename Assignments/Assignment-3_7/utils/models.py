@@ -15,9 +15,9 @@ from gmr import GMM, MVN, plot_error_ellipses
 from numpy.typing import NDArray
 from scipy import optimize
 from sklearn.gaussian_process import GaussianProcessRegressor
-from utils.helpers import plot_curves3
 
-from .helpers import plot_curves
+from .helpers import plot_curves, plot_curves3
+from .utils import plot_curves3_ax
 
 
 class BaseModelABC(ABC):
@@ -1346,3 +1346,58 @@ class TPGMM(BaseModelABC):
 
         plt.title(f"With respect to Main Reference,Product of Gaussians")
         plt.show()
+
+    def plot_gaussians_wrt_frames_ax(self, Data, As, Bs, ax: list[plt.Axes]):
+        """
+        Plots Projected Gaussians,Product of Gaussians on to Main Frame, and the mean trajectory for the given Parameters
+
+        Params:
+            Data: array of shape (n_traj,n_steps,n_features)
+            As:array of shape (n_frames,n_features,n_features)
+            Bs:array of shape (n_frames,n_features)
+        """
+
+        # projected means and covariances
+        projected_means = (As[:, None] @ (self.means[..., None])) + (
+            Bs[:, None, ..., None]
+        )
+        projected_means = projected_means[..., 0]
+        projected_covars = (
+            As[:, None] @ self.covars @ np.transpose(As[:, None], (0, 1, 3, 2))
+        )
+
+        # Product of Gaussians
+        inv_projected_covars = np.linalg.inv(projected_covars)
+        final_covars = np.linalg.inv(np.sum(inv_projected_covars, axis=0))
+        final_means = (
+            final_covars
+            @ np.sum(inv_projected_covars @ (projected_means[..., None]), 0)
+        )[..., 0]
+
+        # plotting projected Gaussians
+        plot_curves3_ax(ax[0], Data[:, :, 1:], alpha=0.2)
+        for i in range(self.n_frames):
+            gmm = GMM(
+                len(self.priors),
+                self.priors,
+                projected_means[i][:, 1:],
+                projected_covars[i][:, 1:, 1:],
+            )
+            plot_error_ellipses(ax[0], gmm, factors=[1])
+
+        ax[0].set_title(f"Projected Gaussians")
+
+        # plotting product of Gaussians
+        gmm = GMM(
+            len(self.priors), self.priors, final_means[:, 1:], final_covars[:, 1:, 1:]
+        )
+        plot_curves3_ax(ax[1], Data[:, :, 1:], alpha=0.1)
+        plot_error_ellipses(ax[1], gmm, factors=[1])
+
+        # mean trajectory with the product of Gaussians
+        gmm = GMM(len(self.priors), self.priors, final_means, final_covars)
+        time = np.linspace(0, 2, 1000)
+        new_traj = gmm.predict([0], time[..., None])
+        plot_curves3_ax(ax[1], new_traj[None])
+
+        ax[1].set_title(f"Product of Gaussians")
