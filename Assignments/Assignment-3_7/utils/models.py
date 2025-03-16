@@ -17,7 +17,6 @@ from scipy import optimize
 from sklearn.gaussian_process import GaussianProcessRegressor
 
 from .helpers import plot_curves, plot_curves3
-from .utils import plot_curves3_ax
 
 
 class BaseModelABC(ABC):
@@ -1356,6 +1355,7 @@ class TPGMM(BaseModelABC):
             As:array of shape (n_frames,n_features,n_features)
             Bs:array of shape (n_frames,n_features)
         """
+        from .utils import plot_curves3_ax
 
         # projected means and covariances
         projected_means = (As[:, None] @ (self.means[..., None])) + (
