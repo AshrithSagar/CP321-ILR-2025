@@ -1082,10 +1082,18 @@ class TPGMM(BaseModelABC):
         # X - shape (n_frames,n_trajectories,n_steps,3)
         # hint:X[0]-(n_trajectories,n_steps,3) is the data viewed w.r.t frame 1, X[1] is the the data viewd w.r.t frame 2
         ################################
+        X = np.array(
+            [
+                np.einsum("tij,tjk->tik", data, self.As[i]) + self.Bs[i]
+                for i in range(self.n_frames)
+            ]
+        )
 
         # initialize means,covars using  self.time_bases_init() method , store them in self.means,self.covars respectively
         # self.priors as uniform (equal probability)
         ################################
+        self.means, self.covars = self.time_based_init(X)
+        self.priors = np.full(self.n_mixture, 1 / self.n_mixture)
 
         # reshape X to (n_frames,n_points,3)
         X = X.reshape(self.n_frames, -1, self.n_feature)
@@ -1097,10 +1105,10 @@ class TPGMM(BaseModelABC):
         while True:
             # Expectation step (use self.expectation_step method)
             ################################
+            h = self.expectation_step(probabilities)
 
             # Maximization step (use self.maximization_step method)
             ################################
-
             self.maximization_step(X, h)
 
             # update probabilities and log likelihood
@@ -1134,7 +1142,6 @@ class TPGMM(BaseModelABC):
         returns:
             h : contribution of each gauusian to a point - array of shape (n_mixture,n_points)
         """
-
         return self._update_h(probabilities)
 
     def maximization_step(self, X, h):
@@ -1143,7 +1150,6 @@ class TPGMM(BaseModelABC):
         input:
             h : contribution of each gauusian to a point - array of shape (n_mixture,n_points)
             X (ndarray): shape: (num_frames, num_points, num_features)
-
         """
         self._update_priors(h)
         self._update_means(X, h)
@@ -1215,6 +1221,9 @@ class TPGMM(BaseModelABC):
             ndarray: h-parameter. shape: (n_components, num_points(7000))
         """
         ################################
+        weighted_probs = probabilities * self.priors[:, np.newaxis, np.newaxis]
+        h = weighted_probs / np.sum(weighted_probs, axis=1, keepdims=True)
+        return np.sum(h, axis=0)
 
     def _update_priors(self, h):
         """update priors in self.priors , doesn't return anything
@@ -1223,6 +1232,7 @@ class TPGMM(BaseModelABC):
             h (ndarray): shape: (n_components, n_points(7000))
         """
         ################################
+        self.priors = np.mean(h, axis=1)
 
     def _update_means(self, X, h):
         """updates the mean parameter (self.mean), doesn't return anything
@@ -1231,6 +1241,7 @@ class TPGMM(BaseModelABC):
             h (ndarray): shape: (n_components, num_points)
         """
         ################################
+        self.means = np.einsum("kij,ji->kij", X, h) / np.sum(h, axis=1)[:, np.newaxis]
 
     def _update_covars(self, X, h):
         """updates the covariance parameters
