@@ -491,26 +491,21 @@ def different_initial_points_tpgmm(
     As: np.ndarray,
     Bs: np.ndarray,
     n_mixture: int,
-    offsets: list[int],
+    initial_points: list[int],
+    y_offset: int = 0,
 ):
     mp = TPGMM(As, Bs, n_mixture)
     mp.fit(Data)
 
-    k = len(offsets)
-    _, axes = plt.subplots(k, 4, figsize=(12, 3 * k))
+    k = len(initial_points)
+    _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
 
-    for i, offset in enumerate(offsets):
-        # using old params of trajectory 1
-        A_new, B_new = As[:, 0], Bs[:, 0]
-        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i, :2])
-
-        # translating start and end of the trajectory - 2  by offset
-        A_new, B_new = As[:, 1].copy(), Bs[:, 1].copy()
-        B_new[0] = B_new[0] + np.array([0, offset, 0])
-        B_new[1] = B_new[1] + np.array([0, offset, 0])
-        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i, 2:])
-
-        axes[i, 0].set_ylabel(f"{offset=}")
+    for i, traj in enumerate(initial_points):
+        A_new, B_new = As[:, traj].copy(), Bs[:, traj].copy()
+        B_new[0] = B_new[0] + np.array([0, y_offset, 0])
+        B_new[1] = B_new[1] + np.array([0, y_offset, 0])
+        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i])
+        axes[i, 0].set_ylabel(f"trajectory={traj}")
     plt.tight_layout()
     plt.show()
 
@@ -706,26 +701,22 @@ def generalisation_tpgmm(
     As: np.ndarray,
     Bs: np.ndarray,
     n_mixture_values: list[int],
+    trajectory_index: int = 0,
+    y_offset: int = 0,
 ):
+    A_new, B_new = As[:, trajectory_index].copy(), Bs[:, trajectory_index].copy()
+    B_new[0] = B_new[0] + np.array([0, y_offset, 0])
+    B_new[1] = B_new[1] + np.array([0, y_offset, 0])
+
     k = len(n_mixture_values)
-    _, axes = plt.subplots(k, 4, figsize=(12, 3 * k))
+    _, axes = plt.subplots(k, 2, figsize=(12, 5 * k))
 
     for i, n_mixture in enumerate(n_mixture_values):
         print(f"{i=} {n_mixture=}")
-
         mp = TPGMM(As, Bs, n_mixture)
         mp.fit(Data)
 
-        # using old params of trajectory 1
-        A_new, B_new = As[:, 0], Bs[:, 0]
-        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i, :2])
-
-        # translating start and end of the trajectory - 2  by -10
-        A_new, B_new = As[:, 1].copy(), Bs[:, 1].copy()
-        B_new[0] = B_new[0] + np.array([0, -10, 0])
-        B_new[1] = B_new[1] + np.array([0, -10, 0])
-        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i, 2:])
-
+        mp.plot_gaussians_wrt_frames_ax(Data, A_new, B_new, axes[i])
         axes[i, 0].set_ylabel(f"{n_mixture=}")
     plt.tight_layout()
     plt.show()

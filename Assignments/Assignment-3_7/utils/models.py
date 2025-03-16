@@ -1385,7 +1385,7 @@ class TPGMM(BaseModelABC):
             )
             plot_error_ellipses(ax[0], gmm, factors=[1])
 
-        ax[0].set_title(f"Projected Gaussians")
+        ax[0].set_title(f"With respect to Main Reference,Projected Gaussians")
 
         # plotting product of Gaussians
         gmm = GMM(
@@ -1400,4 +1400,4 @@ class TPGMM(BaseModelABC):
         new_traj = gmm.predict([0], time[..., None])
         plot_curves3_ax(ax[1], new_traj[None])
 
-        ax[1].set_title(f"Product of Gaussians")
+        ax[1].set_title(f"With respect to Main Reference,Product of Gaussians")
