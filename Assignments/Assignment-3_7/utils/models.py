@@ -1082,12 +1082,10 @@ class TPGMM(BaseModelABC):
         # X - shape (n_frames,n_trajectories,n_steps,3)
         # hint:X[0]-(n_trajectories,n_steps,3) is the data viewed w.r.t frame 1, X[1] is the the data viewd w.r.t frame 2
         ################################
-        X = np.array(
-            [
-                np.einsum("tij,tjk->tik", data, self.As[i]) + self.Bs[i]
-                for i in range(self.n_frames)
-            ]
-        )
+        n_traj, n_steps, n_features = data.shape
+        X = np.zeros((self.n_frames, n_traj, n_steps, self.n_feature))
+        for i in range(self.n_frames):
+            X[i] = np.einsum("tij,taj->tai", self.As[i], data) + self.Bs[i][:, None, :]
 
         # initialize means,covars using  self.time_bases_init() method , store them in self.means,self.covars respectively
         # self.priors as uniform (equal probability)
@@ -1109,6 +1107,7 @@ class TPGMM(BaseModelABC):
 
             # Maximization step (use self.maximization_step method)
             ################################
+            h = h.mean(axis=0)
             self.maximization_step(X, h)
 
             # update probabilities and log likelihood
@@ -1221,9 +1220,9 @@ class TPGMM(BaseModelABC):
             ndarray: h-parameter. shape: (n_components, num_points(7000))
         """
         ################################
-        weighted_probs = probabilities * self.priors[:, np.newaxis, np.newaxis]
+        weighted_probs = probabilities * self.priors[None, :, None]
         h = weighted_probs / np.sum(weighted_probs, axis=1, keepdims=True)
-        return np.sum(h, axis=0)
+        return h
 
     def _update_priors(self, h):
         """update priors in self.priors , doesn't return anything
@@ -1241,7 +1240,10 @@ class TPGMM(BaseModelABC):
             h (ndarray): shape: (n_components, num_points)
         """
         ################################
-        self.means = np.einsum("kij,ji->kij", X, h) / np.sum(h, axis=1)[:, np.newaxis]
+        h = h[None, :, :]
+        weighted_sum = np.einsum("fmp,fpd->fmd", h, X)
+        h_sum = np.sum(h, axis=2, keepdims=True)
+        self.means = weighted_sum / h_sum
 
     def _update_covars(self, X, h):
         """updates the covariance parameters
