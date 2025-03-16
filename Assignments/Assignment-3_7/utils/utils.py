@@ -11,7 +11,7 @@ import numpy as np
 
 from .helpers import derivative
 from .lasa import load_lasa
-from .models import GMR, GPR, LWR, RBFN, SEDS, BaseModelABC, LeastSquares, ProMP
+from .models import GMR, GPR, LWR, RBFN, SEDS, TPGMM, BaseModelABC, LeastSquares, ProMP
 
 
 def plot_curves_ax(ax, x, show_start_end=True, **kwargs):
@@ -353,6 +353,17 @@ def _get_model(model_key, model_params):
             attractor=model_params["attractor"],
             n_mixture=model_params["n_mixture"],
         )
+    elif model_key == "promp":
+        model = ProMP(
+            n_dims=model_params["n_dims"],
+            nweights_per_dim=model_params["nweights_per_dim"],
+        )
+    elif model_key == "tpgmm":
+        model = TPGMM(
+            As=model_params["As"],
+            Bs=model_params["Bs"],
+            n_mixture=model_params["n_mixture"],
+        )
     else:
         raise ValueError("Unsupported model")
     return model
@@ -459,6 +470,31 @@ def different_initial_points_promp(
         sample_trajectories(model, x, axes[i, 0], n=100)
         condition_on_starting_point(model, x, axes[i, 1], starting_index=start_idx)
     plt.tight_layout()
+    plt.show()
+
+
+def different_initial_points_tpgmm(
+    Data: np.ndarray,
+    As: np.ndarray,
+    Bs: np.ndarray,
+    n_mixture: int,
+    offsets: list[int],
+):
+    mp = TPGMM(As, Bs, n_mixture)
+    mp.fit(Data)
+
+    for i, offset in enumerate(offsets):
+        print(f"{i=} {offset=}")
+
+        # using old params of trajectory 1
+        A_new, B_new = As[:, 0], Bs[:, 0]
+        mp.plot_gaussians_wrt_frames(Data, A_new, B_new)
+
+        # translating start and end of the trajectory - 2  by offset
+        A_new, B_new = As[:, 1].copy(), Bs[:, 1].copy()
+        B_new[0] = B_new[0] + np.array([0, offset, 0])
+        B_new[1] = B_new[1] + np.array([0, offset, 0])
+        mp.plot_gaussians_wrt_frames(Data, A_new, B_new)
     plt.show()
 
 
