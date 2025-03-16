@@ -682,3 +682,27 @@ def generalisation_promp(dataset: str, nweights_per_dim_values: list[int], n_dim
         axes[i, 0].set_ylabel(f"{nweights_per_dim=}")
     plt.tight_layout()
     plt.show()
+
+
+def generalisation_tpgmm(
+    Data: np.ndarray,
+    As: np.ndarray,
+    Bs: np.ndarray,
+    n_mixture_values: list[int],
+):
+    for i, n_mixture in enumerate(n_mixture_values):
+        print(f"{i=} {n_mixture=}")
+
+        mp = TPGMM(As, Bs, n_mixture)
+        mp.fit(Data)
+
+        # using old params of trajectory 1
+        A_new, B_new = As[:, 0], Bs[:, 0]
+        mp.plot_gaussians_wrt_frames(Data, A_new, B_new)
+
+        # translating start and end of the trajectory - 2  by -10
+        A_new, B_new = As[:, 1].copy(), Bs[:, 1].copy()
+        B_new[0] = B_new[0] + np.array([0, -10, 0])
+        B_new[1] = B_new[1] + np.array([0, -10, 0])
+        mp.plot_gaussians_wrt_frames(Data, A_new, B_new)
+    plt.show()
